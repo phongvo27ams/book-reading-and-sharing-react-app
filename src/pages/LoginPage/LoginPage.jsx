@@ -9,7 +9,7 @@ import classNames from 'classnames/bind'
 import FloatingHintTextBox from '../../components/FloatingHintTextBox/FloatingHintTextBox.'
 import { useAuth } from '../../provider/AuthContext'
 import Loader from '../../components/Loader/Loader'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Messages } from '../../components/FoxCharacter/FoxCharacter'
 
 const clx = classNames.bind(style)
@@ -21,15 +21,20 @@ function LoginPage() {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
 
+    useEffect(() => {
+        // Ensure LOGIN message is set when component mounts
+        setMessage(Messages.LOGIN)
+    }, [])
+
     const handleLogin = async () => {
 
-        if (username.length === 0 && password.length === 0) {
+        if (username.trim().length === 0 || password.trim().length === 0) {
             setMessage(Messages.BLANK)
             return
         }
 
         const credentials = {
-            username: username,
+            username: username.trim(),
             password: password
         }
 

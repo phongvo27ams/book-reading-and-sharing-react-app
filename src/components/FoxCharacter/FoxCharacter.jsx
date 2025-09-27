@@ -16,7 +16,8 @@ export const Messages = Object.freeze({
     EMAIL_EXIST: ["This email looks familiar", "It's seem to be used before", "Please try another one !"],
     BLANK: ["Hey, don't worry buddy", "Just tell me who you are", "And fill in the blank !"],
     PASSWORD: ["Ok, now move to next step", "Please enter a password", "Read the rules carefully !"],
-    INVALID_PASSWORD: ["Oops, something wrong", "You need stronger password", "Read the rules again !"]
+    INVALID_PASSWORD: ["Oops, something wrong", "You need stronger password", "Read the rules again !"],
+    INVALID_EMAIL: ["Hmm, that email doesn't look right", "Please check your email format", "and try again!"]
 });
 
 function FoxCharacter() {
