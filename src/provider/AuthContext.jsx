@@ -71,6 +71,9 @@ export default function AuthProvider({ children }) {
                 setUserInfo(userResponse.data)
                 setHasFetchedUser(true)
 
+                // Reset message after successful login
+                setMessage(Messages.LOGIN)
+                
                 navigate("/")
                 return true
             } else {
@@ -98,6 +101,7 @@ export default function AuthProvider({ children }) {
             setJwt(null);
             setAuthenticated(false)
             setUserInfo(null)
+            setMessage(Messages.LOGIN) // Reset message to default LOGIN state
         }
     };
 

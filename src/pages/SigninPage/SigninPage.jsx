@@ -5,7 +5,7 @@ import { faXmark, faCheck, faArrowLeft, faArrowRight, faN } from '@fortawesome/f
 import { Link, useNavigate } from 'react-router-dom'
 import classNames from 'classnames/bind'
 import FloatingHintTextBox from '../../components/FloatingHintTextBox/FloatingHintTextBox.'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import PasswordReqList from '../../components/PasswordReqList/PasswordReqList'
 import { useAuth } from '../../provider/AuthContext'
 import Loader from '../../components/Loader/Loader'
@@ -30,8 +30,20 @@ function SigninPage() {
 
     const [next, setNext] = useState(false)
 
+    useEffect(() => {
+        // Ensure SIGNUP message is set when component mounts
+        setMessage(Messages.SIGNUP)
+    }, [])
+
     const handleSetNext = () => {
-        if (username.length > 0 && email.length > 0 && fName.length > 0 && lName.length > 0) {
+        // Validate all fields are filled
+        if (username.trim().length > 0 && email.trim().length > 0 && fName.trim().length > 0 && lName.trim().length > 0) {
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+            if (!emailRegex.test(email.trim())) {
+                setMessage(Messages.INVALID_EMAIL)
+                return
+            }
             setNext(true)
             setMessage(Messages.PASSWORD)
         }
@@ -72,7 +84,7 @@ function SigninPage() {
 
     return (
         <form className={clx('signin-container')}>
-            <img className={clx('logo')} src={logo} />
+            <img className={clx('logo')} src={logo} alt="Logo" />
             <label className={clx('title')}>SIGN UP</label>
             <div className={clx('info-container')}>
                 <div className={clx('slider', { 'next': next })}>
@@ -87,10 +99,13 @@ function SigninPage() {
                         </div>
                     </div>
                     <div className={clx('step-container')}>
-                        <FloatingHintTextBox hint='Password' value={password} type='password' onChange={(e) => setPassword(e.target.value)} />
-                        <FloatingHintTextBox hint='Confirm password' value={confirm} type='password' onChange={(e) => setConfirm(e.target.value)} />
+                        <FloatingHintTextBox hint='Password' data-testid="password-input" value={password} type='password' onChange={(e) => setPassword(e.target.value)} />
+                        <FloatingHintTextBox hint='Confirm password' data-testid="confirm-input" value={confirm} type='password' onChange={(e) => setConfirm(e.target.value)} />
                         <PasswordReqList password={password} confirm={confirm} onValidityChange={setValidPassword} />
-                        <div className={clx('next-btn')} onClick={() => setNext(false)}>
+                        <div className={clx('next-btn')} onClick={() => {
+                            setNext(false)
+                            setMessage(Messages.SIGNUP)
+                        }}>
                             <FontAwesomeIcon icon={faArrowLeft} />
                             <label>Go back to previous step</label>
                         </div>
