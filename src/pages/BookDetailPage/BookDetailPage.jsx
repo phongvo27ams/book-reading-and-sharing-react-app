@@ -13,14 +13,15 @@ import { useBook } from '../../provider/BookContext'
 import { useAuth } from '../../provider/AuthContext'
 import { counting, getBookRatings, getMyRating, rateThisBook } from '../../api/ratingApi'
 import { favoriteCheck, getPurchasedBookIds, toggleAddToFavorites } from '../../api/bookApi'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Loader from '../../components/Loader/Loader'
 import { createZaloPayOrder, getZaloPayPaymentStatus, payUsingFoxBudget } from '../../api/purchaseApi'
 
 const clx = classNames.bind(style)
 function BookDetailPage() {
-    const { bookData, bookLoading, setUpdateFavorites } = useBook()
+    const { bookData, bookLoading, setUpdateFavorites, setId } = useBook()
     const { authenticated, jwt, userInfo, setUserInfo } = useAuth()
+    const [searchParams] = useSearchParams()
 
     const [clicked, setClicked] = useState(false)
     const [slide, setSlide] = useState(1)
@@ -40,6 +41,14 @@ function BookDetailPage() {
     const [ratingDisplayNum, setRatingDisplayNum] = useState(5)
 
     const navigate = useNavigate()
+
+    // Đọc bookId từ URL params và set vào context
+    useEffect(() => {
+        const bookIdFromUrl = searchParams.get('id')
+        if (bookIdFromUrl) {
+            setId(bookIdFromUrl)
+        }
+    }, [searchParams, setId])
 
     const updateInteractions = (usn, bid, likes, dislikes, loves) => {
         setRatings(prevRts =>
