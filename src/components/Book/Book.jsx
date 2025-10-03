@@ -14,7 +14,7 @@ function Book({ book }) {
     const handleBookDetailView = () => {
         setId(book.bookId)
         setBookData(book)
-        navigate("/book/detail")
+        navigate(`/book/detail?id=${book.bookId}`)
     }
 
     return (
