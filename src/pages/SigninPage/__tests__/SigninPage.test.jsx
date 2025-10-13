@@ -1,22 +1,23 @@
-import React from "react";
-import SigninPage from "../SigninPage";
+import { vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import { vi } from "vitest";
+
+import SigninPage from "../SigninPage";
 import { Messages } from "../../../components/FoxCharacter/FoxCharacter";
 
 let setValidPasswordMock = vi.fn();
 
-// Mock Navigate
+// Mock navigate
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
+let mockUserRegister = vi.fn();
+let mockSetMessage = vi.fn();
+
 // Mock useAuth
-const mockUserRegister = vi.fn();
-const mockSetMessage = vi.fn();
 vi.mock("../../../provider/AuthContext", () => ({
   useAuth: () => ({
     userRegister: mockUserRegister,
@@ -25,12 +26,9 @@ vi.mock("../../../provider/AuthContext", () => ({
   }),
 }));
 
-// Mock logo
 vi.mock("../../assets/fox.png", () => "fox.png");
 
-// Mock FloatingHintTextBox
-vi.mock('../../../components/FloatingHintTextBox/FloatingHintTextBox.', () => {
-  const React = require("react");
+vi.mock("../../../components/FloatingHintTextBox/FloatingHintTextBox.", () => {
   return {
     default: ({ hint, value, onChange, ...props }) => (
       <input
@@ -39,36 +37,40 @@ vi.mock('../../../components/FloatingHintTextBox/FloatingHintTextBox.', () => {
         onChange={(e) => onChange && onChange(e)}
         {...props}
       />
-    )
+    ),
   };
 });
 
-// Mock PasswordReqList
-vi.mock("../../../components/PasswordReqList/PasswordReqList", () => {
-  return {
-    default: ({ onValidityChange }) => {
-      setValidPasswordMock = onValidityChange;
-      return <div>PasswordReqList mock</div>;
-    },
-  };
-});
+vi.mock("../../../components/PasswordReqList/PasswordReqList", () => ({
+  default: ({ onValidityChange }) => {
+    setValidPasswordMock = onValidityChange;
+    return <div>PasswordReqList mock</div>;
+  },
+}));
 
-describe("SigninPage - Basic Render", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+// ==== Helper Functions ====
+const renderSigninPage = () =>
+  render(
+    <MemoryRouter>
+      <SigninPage />
+    </MemoryRouter>
+  );
 
-  test("Renders logo, title, inputs, buttons, link, loader container", () => {
-    render(
-      <MemoryRouter>
-        <SigninPage />
-      </MemoryRouter>
-    );
+const fillStep1 = () => {
+  fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: "user1" } });
+  fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "user@example.com" } });
+  fireEvent.change(screen.getByLabelText(/First name/i), { target: { value: "John" } });
+  fireEvent.change(screen.getByLabelText(/Last name/i), { target: { value: "Doe" } });
+  fireEvent.click(screen.getByText(/Go to next step/i));
+};
 
-    // Logo
+describe("Component SigninPage: Initial Content Rendering", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  test("SHOULD render the logo, main title, and initial link WHEN the component loads", () => {
+    renderSigninPage();
+
     expect(screen.getByRole("img")).toBeInTheDocument();
-
-    // Title
     expect(screen.getByText("SIGN UP")).toBeInTheDocument();
 
     // Step 1 inputs
@@ -90,17 +92,11 @@ describe("SigninPage - Basic Render", () => {
   });
 });
 
-describe("SigninPage - Step 1 validation", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+describe("Component SigninPage: Step 1 Form Validation and Navigation", () => {
+  beforeEach(() => vi.clearAllMocks());
 
-  test("Shows BLANK message when fields are empty", async () => {
-    render(
-      <MemoryRouter>
-        <SigninPage />
-      </MemoryRouter>
-    );
+  test("SHOULD call the BLANK message handler WHEN the user clicks 'Go to next step' with empty fields", async () => {
+    renderSigninPage();
 
     fireEvent.click(screen.getByText(/Go to next step/i));
 
@@ -109,12 +105,8 @@ describe("SigninPage - Step 1 validation", () => {
     });
   });
 
-  test("Shows INVALID_EMAIL message when email is invalid", async () => {
-    render(
-      <MemoryRouter>
-        <SigninPage />
-      </MemoryRouter>
-    );
+  test("SHOULD call the INVALID_EMAIL message handler WHEN other fields are valid but the email format is incorrect", async () => {
+    renderSigninPage();
 
     fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: "user1" } });
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "invalid-email" } });
@@ -128,19 +120,10 @@ describe("SigninPage - Step 1 validation", () => {
     });
   });
 
-  test("Proceeds to next step when all fields are valid", async () => {
-    render(
-      <MemoryRouter>
-        <SigninPage />
-      </MemoryRouter>
-    );
+  test("SHOULD proceed to Step 2 AND show the password fields WHEN all Step 1 fields are valid", async () => {
+    renderSigninPage();
 
-    fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: "user1" } });
-    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "user@example.com" } });
-    fireEvent.change(screen.getByLabelText(/First name/i), { target: { value: "John" } });
-    fireEvent.change(screen.getByLabelText(/Last name/i), { target: { value: "Doe" } });
-
-    fireEvent.click(screen.getByText(/Go to next step/i));
+    fillStep1();
 
     await waitFor(() => {
       expect(mockSetMessage).toHaveBeenCalledWith(Messages.PASSWORD);
@@ -149,32 +132,16 @@ describe("SigninPage - Step 1 validation", () => {
   });
 });
 
-describe("SigninPage - Step 2 registration", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+describe("Component SigninPage: Step 2 Password Validation and Registration", () => {
+  beforeEach(() => vi.clearAllMocks());
 
-  const fillStep1 = () => {
-    fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: "user1" } });
-    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "user@example.com" } });
-    fireEvent.change(screen.getByLabelText(/First name/i), { target: { value: "John" } });
-    fireEvent.change(screen.getByLabelText(/Last name/i), { target: { value: "Doe" } });
-    fireEvent.click(screen.getByText(/Go to next step/i));
-  };
-
-  test("Shows INVALID_PASSWORD when password is invalid", async () => {
-    render(
-      <MemoryRouter>
-        <SigninPage />
-      </MemoryRouter>
-    );
-
+  test("SHOULD show the INVALID_PASSWORD message AND NOT call the registration API WHEN password validation fails", async () => {
+    renderSigninPage();
     fillStep1();
 
     fireEvent.change(screen.getByTestId("password-input"), { target: { value: "Abc123!" } });
     fireEvent.change(screen.getByTestId("confirm-input"), { target: { value: "Abc123!" } });
 
-    // validPassword state is false, simulate by leaving it false
     fireEvent.click(screen.getByText(/Join the Foxes/i));
 
     await waitFor(() => {
@@ -183,15 +150,10 @@ describe("SigninPage - Step 2 registration", () => {
     });
   });
 
-  test("Calls userRegister with valid password and resets fields", async () => {
-    mockUserRegister.mockResolvedValue(true); // Ensure registered
+  test("SHOULD call the user registration API with all data AND redirect to login WHEN all steps are successfully completed", async () => {
+    mockUserRegister.mockResolvedValue(true);
 
-    render(
-      <MemoryRouter>
-        <SigninPage />
-      </MemoryRouter>
-    );
-
+    renderSigninPage();
     fillStep1();
 
     await waitFor(() => screen.getByTestId("password-input"));
@@ -214,13 +176,172 @@ describe("SigninPage - Step 2 registration", () => {
           fName: "John",
           lName: "Doe",
           balance: 0,
-        }),
+        })
       );
+
       expect(mockNavigate).toHaveBeenCalledWith("/auth/login");
+
       expect(screen.getByLabelText(/Username/i).value).toBe("");
       expect(screen.getByLabelText(/Email/i).value).toBe("");
       expect(screen.getByLabelText(/First name/i).value).toBe("");
       expect(screen.getByLabelText(/Last name/i).value).toBe("");
     });
+  });
+});
+
+describe("Component SigninPage", () => {
+  beforeEach(() => {
+    mockUserRegister = vi.fn();
+    mockSetMessage = vi.fn();
+    vi.clearAllMocks();
+  });
+
+  const invalidUsernames = [
+    "short",
+    "a".repeat(33),
+    "user!",
+    "user@name",
+    "user name",
+  ];
+
+  const validUsernames = [
+    "user123",
+    "User_01",
+    "username32characterslonggg",
+  ];
+
+  const invalidPasswords = [
+    "short",
+    "a".repeat(33),
+    "abcdefgh",
+    "12345678",
+    "!!!!!!!!",
+    "abcde123",
+    "Abc!@#",
+    "A1!@#",
+    "pass word1!",
+  ];
+
+  const validPasswords = [
+    "Abcd23!",
+    "Password1@",
+    "Aa1!@#$%^&*",
+    "Zx9_@1234",
+  ];
+
+  describe("Validation", () => {
+    test.each(validUsernames)(
+      "Accepts valid username: '%s'",
+      async (username) => {
+        mockUserRegister.mockResolvedValue(true);
+        render(
+          <MemoryRouter>
+            <SigninPage />
+          </MemoryRouter>
+        );
+
+        act(() => {
+          setValidPasswordMock(true);
+        });
+
+        const usernameInput = screen.getByLabelText(/Username/i);
+        const passwordInput = screen.getByTestId("password-input");
+        const loginButton = screen.getByText(/Join the Foxes/i);
+
+        fireEvent.change(usernameInput, { target: { value: username } });
+        fireEvent.change(passwordInput, { target: { value: "ValidPass1" } });
+        fireEvent.click(loginButton);
+
+        await waitFor(() => {
+          expect(mockUserRegister).toHaveBeenCalledWith(
+            expect.objectContaining({
+              username,
+              password: "ValidPass1",
+            })
+          );
+        });
+      }
+    );
+
+    test.each(invalidUsernames)(
+      "Rejects invalid username: '%s'",
+      async (username) => {
+        render(
+          <MemoryRouter>
+            <SigninPage />
+          </MemoryRouter>
+        );
+
+        const usernameInput = screen.getByLabelText(/Username/i);
+        const passwordInput = screen.getByTestId("password-input");
+        const loginButton = screen.getByText(/Join the Foxes/i);
+
+        fireEvent.change(usernameInput, { target: { value: username } });
+        fireEvent.change(passwordInput, { target: { value: "ValidPass1" } });
+        fireEvent.click(loginButton);
+
+        await waitFor(() => {
+          expect(mockUserRegister).not.toHaveBeenCalled();
+          expect(mockSetMessage).toHaveBeenCalledWith(Messages.INVALID_PASSWORD);
+        });
+      }
+    );
+
+    test.each(validPasswords)(
+      "Accepts valid password: '%s'",
+      async (password) => {
+        mockUserRegister.mockResolvedValue(true);
+        render(
+          <MemoryRouter>
+            <SigninPage />
+          </MemoryRouter>
+        );
+
+        act(() => {
+          setValidPasswordMock(true);
+        });
+
+        const usernameInput = screen.getByLabelText(/Username/i);
+        const passwordInput = screen.getByTestId("password-input");
+        const loginButton = screen.getByText(/Join the Foxes/i);
+
+        fireEvent.change(usernameInput, { target: { value: "ValidUser" } });
+        fireEvent.change(passwordInput, { target: { value: password } });
+        fireEvent.click(loginButton);
+
+        await waitFor(() => {
+          expect(mockUserRegister).toHaveBeenCalledWith(
+            expect.objectContaining({
+              username: "ValidUser",
+              password,
+            })
+          );
+        });
+      }
+    );
+
+    test.each(invalidPasswords)(
+      "Rejects invalid password: '%s'",
+      async (password) => {
+        render(
+          <MemoryRouter>
+            <SigninPage />
+          </MemoryRouter>
+        );
+
+        const usernameInput = screen.getByLabelText(/Username/i);
+        const passwordInput = screen.getByTestId("password-input");
+        const loginButton = screen.getByText(/Join the Foxes/i);
+
+        fireEvent.change(usernameInput, { target: { value: "ValidUser" } });
+        fireEvent.change(passwordInput, { target: { value: password } });
+        fireEvent.click(loginButton);
+
+        await waitFor(() => {
+          expect(mockUserRegister).not.toHaveBeenCalled();
+          expect(mockSetMessage).toHaveBeenCalledWith(Messages.INVALID_PASSWORD);
+        });
+      }
+    );
   });
 });
