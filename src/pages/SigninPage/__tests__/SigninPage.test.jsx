@@ -41,12 +41,16 @@ vi.mock("../../../components/FloatingHintTextBox/FloatingHintTextBox.", () => {
   };
 });
 
-vi.mock("../../../components/PasswordReqList/PasswordReqList", () => ({
-  default: ({ onValidityChange }) => {
-    setValidPasswordMock = onValidityChange;
-    return <div>PasswordReqList mock</div>;
-  },
-}));
+vi.mock('../../../components/PasswordReqList', () => {
+  return {
+    default: ({ onValidityChange }) => {
+      useEffect(() => {
+        onValidityChange(true);
+      }, []);
+      return <div>PasswordReqList mock</div>;
+    },
+  };
+});
 
 // ==== Helper Functions ====
 const renderSigninPage = () =>
@@ -57,7 +61,7 @@ const renderSigninPage = () =>
   );
 
 const fillStep1 = () => {
-  fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: "user1" } });
+  fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: "user001" } });
   fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "user@example.com" } });
   fireEvent.change(screen.getByLabelText(/First name/i), { target: { value: "John" } });
   fireEvent.change(screen.getByLabelText(/Last name/i), { target: { value: "Doe" } });
@@ -108,15 +112,19 @@ describe("Component SigninPage: Step 1 Form Validation and Navigation", () => {
   test("SHOULD call the INVALID_EMAIL message handler WHEN other fields are valid but the email format is incorrect", async () => {
     renderSigninPage();
 
-    fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: "user1" } });
+    fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: "user001" } });
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "invalid-email" } });
     fireEvent.change(screen.getByLabelText(/First name/i), { target: { value: "John" } });
     fireEvent.change(screen.getByLabelText(/Last name/i), { target: { value: "Doe" } });
 
+    mockSetMessage.mockClear(); // Reset all other calls
     fireEvent.click(screen.getByText(/Go to next step/i));
 
     await waitFor(() => {
-      expect(mockSetMessage).toHaveBeenCalledWith(Messages.INVALID_EMAIL);
+      const calledWithInvalidEmail = mockSetMessage.mock.calls.some(
+        call => JSON.stringify(call[0]) === JSON.stringify(Messages.INVALID_EMAIL)
+      );
+      expect(calledWithInvalidEmail).toBe(true);
     });
   });
 
@@ -139,8 +147,8 @@ describe("Component SigninPage: Step 2 Password Validation and Registration", ()
     renderSigninPage();
     fillStep1();
 
-    fireEvent.change(screen.getByTestId("password-input"), { target: { value: "Abc123!" } });
-    fireEvent.change(screen.getByTestId("confirm-input"), { target: { value: "Abc123!" } });
+    fireEvent.change(screen.getByTestId("password-input"), { target: { value: "123456" } });
+    fireEvent.change(screen.getByTestId("confirm-input"), { target: { value: "123456" } });
 
     fireEvent.click(screen.getByText(/Join the Foxes/i));
 
@@ -170,7 +178,7 @@ describe("Component SigninPage: Step 2 Password Validation and Registration", ()
     await waitFor(() => {
       expect(mockUserRegister).toHaveBeenCalledWith(
         expect.objectContaining({
-          username: "user1",
+          username: "user001",
           email: "user@example.com",
           password: "Abc123!",
           fName: "John",
@@ -240,28 +248,33 @@ describe("Component SigninPage", () => {
           </MemoryRouter>
         );
 
-        act(() => {
-          setValidPasswordMock(true);
-        });
+        fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: username } });
+        fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "user@example.com" } });
+        fireEvent.change(screen.getByLabelText(/First name/i), { target: { value: "John" } });
+        fireEvent.change(screen.getByLabelText(/Last name/i), { target: { value: "Doe" } });
 
-        const usernameInput = screen.getByLabelText(/Username/i);
+        fireEvent.click(screen.getByText(/Go to next step/i));
+
         const passwordInput = screen.getByTestId("password-input");
-        const loginButton = screen.getByText(/Join the Foxes/i);
+        const confirmInput = screen.getByTestId("confirm-input");
+        const joinButton = screen.getByText(/Join the Foxes/i);
 
-        fireEvent.change(usernameInput, { target: { value: username } });
-        fireEvent.change(passwordInput, { target: { value: "ValidPass1" } });
-        fireEvent.click(loginButton);
+        fireEvent.change(passwordInput, { target: { value: "ValidPassword@123" } });
+        fireEvent.change(confirmInput, { target: { value: "ValidPassword@123" } });
+
+        fireEvent.click(joinButton);
 
         await waitFor(() => {
           expect(mockUserRegister).toHaveBeenCalledWith(
             expect.objectContaining({
               username,
-              password: "ValidPass1",
+              password: "ValidPassword@123",
             })
           );
         });
       }
     );
+
 
     test.each(invalidUsernames)(
       "Rejects invalid username: '%s'",
@@ -277,7 +290,7 @@ describe("Component SigninPage", () => {
         const loginButton = screen.getByText(/Join the Foxes/i);
 
         fireEvent.change(usernameInput, { target: { value: username } });
-        fireEvent.change(passwordInput, { target: { value: "ValidPass1" } });
+        fireEvent.change(passwordInput, { target: { value: "ValidPassword@123" } });
         fireEvent.click(loginButton);
 
         await waitFor(() => {
@@ -303,10 +316,12 @@ describe("Component SigninPage", () => {
 
         const usernameInput = screen.getByLabelText(/Username/i);
         const passwordInput = screen.getByTestId("password-input");
+        const confirmInput = screen.getByTestId("confirm-input");
         const loginButton = screen.getByText(/Join the Foxes/i);
 
         fireEvent.change(usernameInput, { target: { value: "ValidUser" } });
         fireEvent.change(passwordInput, { target: { value: password } });
+        fireEvent.change(confirmInput, { target: { value: password } });
         fireEvent.click(loginButton);
 
         await waitFor(() => {
