@@ -1,0 +1,31 @@
+- task: Npm@1
+  displayName: 'npm install'
+  inputs:
+    command: 'install'
+
+- script: mkdir -p test-results/coverage
+  displayName: 'Create test results folder'
+
+- task: Npm@1
+  displayName: 'Run Unit Tests and Generate Reports'
+  inputs:
+    command: 'custom'
+    customCommand: 'run test'
+  continueOnError: true
+
+- task: PublishTestResults@2
+  displayName: 'Publish Test Results'
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: 'test-results/junit.xml'
+    mergeTestResults: true
+    testRunTitle: 'React Unit Tests'
+  condition: succeededOrFailed()
+
+- task: PublishCodeCoverageResults@1
+  displayName: 'Publish Code Coverage'
+  inputs:
+    codeCoverageTool: 'Cobertura'
+    summaryFileLocation: 'test-results/coverage/cobertura-coverage.xml'
+    reportDirectory: 'test-results/coverage'
+  condition: succeededOrFailed()
