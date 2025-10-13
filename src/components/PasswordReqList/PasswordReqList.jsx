@@ -28,8 +28,8 @@ function PasswordReqList({ password, confirm, onValidityChange }) {
             else if (/[^a-zA-Z0-9]/.test(c)) spec++
         }
 
-        setValidNumOfChar(password.length >= 8)
-        setHasCapLetterAndDigit(capletters >= 1 && digits >= 2)
+        setValidNumOfChar(password.length >= 6)
+        setHasCapLetterAndDigit(capletters >= 1 && digits >= 1)
         setHasSpecChar(spec >= 1)
     }, [password])
 
@@ -42,12 +42,12 @@ function PasswordReqList({ password, confirm, onValidityChange }) {
             <li className={clx('req')}>
                 <FontAwesomeIcon className={clx({ 'req-icon': true, 'ok': validNumOfChar })}
                     icon={validNumOfChar ? faCheck : faXmark} />
-                <label className={clx({ 'ok': validNumOfChar })}>At least 8 characters</label>
+                <label className={clx({ 'ok': validNumOfChar })}>At least 6 characters</label>
             </li>
             <li className={clx('req')}>
                 <FontAwesomeIcon className={clx({ 'req-icon': true, 'ok': hasCapLetterAndDigit })}
                     icon={hasCapLetterAndDigit ? faCheck : faXmark} />
-                <label className={clx({ 'ok': hasCapLetterAndDigit })}>At least 1 capital letter and 2 digits</label>
+                <label className={clx({ 'ok': hasCapLetterAndDigit })}>At least 1 capital letter and 1 digit</label>
             </li>
             <li className={clx('req')}>
                 <FontAwesomeIcon className={clx({ 'req-icon': true, 'ok': hasSpecChar })}
@@ -61,7 +61,6 @@ function PasswordReqList({ password, confirm, onValidityChange }) {
             </li>
         </ul>
     )
-
 }
 
 export default PasswordReqList

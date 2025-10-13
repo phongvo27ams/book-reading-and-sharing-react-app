@@ -38,7 +38,7 @@ function LoginPage() {
   const handleLogin = async () => {
     if (isSubmitting) return;
 
-    // Reset lỗi trước khi check
+    // Reset error message
     setErrorMessage("");
 
     if (username.trim().length === 0 || password.trim().length === 0) {
@@ -55,7 +55,7 @@ function LoginPage() {
 
     if (!isValidPassword(password)) {
       setMessage(Messages.BLANK);
-      setErrorMessage("Password must be 6-32 characters, include at least one letter, one number, and one special symbol.");
+      setErrorMessage("Password must be 6-32 characters, include at least one letter, number, and special character. No spaces are allowed.");
       return;
     }
 
