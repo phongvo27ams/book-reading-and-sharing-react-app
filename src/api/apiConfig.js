@@ -1,8 +1,11 @@
 // src/api/axiosConfig.js
 import axios from 'axios';
 
+// Use the environment variable (React only exposes vars prefixed with REACT_APP_)
+const baseURL = import.meta.env.VITE_API_URL;
+
 const baseApi = axios.create({
-  baseURL: 'http://localhost:8080/foxbase-be',
+  baseURL: baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
