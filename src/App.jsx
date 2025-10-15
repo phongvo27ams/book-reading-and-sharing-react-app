@@ -12,6 +12,8 @@ import ExplorePage from './pages/ExplorePage/ExplorePage'
 import ResultPage from './pages/ResultPage/ResultPage'
 import { useEffect } from 'react'
 import OAuth2SuccessPage from './pages/OAuth2SuccessPage/OAuth2SuccessPage'
+import LoginGuard from './components/LoginGuard/LoginGuard'
+import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute'
 
 function App() {
   const location = useLocation();
@@ -25,13 +27,42 @@ function App() {
         <Routes>
           <Route path='/' element={<DefaultLayout><BooksPage/></DefaultLayout>}/>
           <Route path='/oauth2-success' element={<OAuth2SuccessPage/>}/>
-          <Route path='/auth/login' element={<AuthLayout context='login'><LoginPage/></AuthLayout>}/>
-          <Route path='/auth/signin' element={<AuthLayout context='signup'><SigninPage/></AuthLayout>}/>
-          <Route path='/auth/reset-password' element={<AuthLayout context='reset'><ResetPasswordPage/></AuthLayout>}/>
-          <Route path='/book/detail' element={<DefaultLayout><BookDetailPage/></DefaultLayout>}/>
-          <Route path='/dashboard' element={<DashboardLayout></DashboardLayout>}/>
-          <Route path='/explore' element={<ExploreLayout><ExplorePage/></ExploreLayout>}/>
-          <Route path='/explore/result' element={<ExploreLayout><ResultPage/></ExploreLayout>}/>
+          
+          <Route path='/auth/login' element={
+            <LoginGuard>
+              <AuthLayout context='login'><LoginPage/></AuthLayout>
+            </LoginGuard>
+          }/>
+          <Route path='/auth/signin' element={
+            <LoginGuard>
+              <AuthLayout context='signup'><SigninPage/></AuthLayout>
+            </LoginGuard>
+          }/>
+          <Route path='/auth/reset-password' element={
+            <LoginGuard>
+              <AuthLayout context='reset'><ResetPasswordPage/></AuthLayout>
+            </LoginGuard>
+          }/>
+          <Route path='/book/detail' element={
+            <ProtectedRoute>
+              <DefaultLayout><BookDetailPage/></DefaultLayout>
+            </ProtectedRoute>
+          }/>
+          <Route path='/dashboard' element={
+            <ProtectedRoute>
+              <DashboardLayout></DashboardLayout>
+            </ProtectedRoute>
+          }/>
+          <Route path='/explore' element={
+            <ProtectedRoute>
+              <ExploreLayout><ExplorePage/></ExploreLayout>
+            </ProtectedRoute>
+          }/>
+          <Route path='/explore/result' element={
+            <ProtectedRoute>
+              <ExploreLayout><ResultPage/></ExploreLayout>
+            </ProtectedRoute>
+          }/>
         </Routes>
     </div>
   )
