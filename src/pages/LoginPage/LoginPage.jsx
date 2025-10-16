@@ -11,6 +11,7 @@ import { useAuth } from '../../provider/AuthContext'
 import Loader from '../../components/Loader/Loader'
 import { useState, useEffect } from 'react'
 import { Messages } from '../../components/FoxCharacter/FoxCharacter'
+import { baseURL } from '../../api/apiConfig'
 
 const clx = classNames.bind(style)
 
@@ -65,7 +66,7 @@ function LoginPage() {
                 <label>OR</label>
             </div>
             <a className={clx('third-party-auth-button')}
-                href='http://localhost:8080/foxbase-be/oauth2/authorization/google'>
+                href={`${baseURL}/oauth2/authorization/google`}>
                 <img src={google} />
                 <label>Log in with Google</label>
             </a>
