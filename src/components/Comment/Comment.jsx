@@ -18,7 +18,8 @@ export default function Comment({ myComment, fname, lname, avatarUrl, rating, up
         NONE: 'NONE'
     }
 
-    const { jwt } = useAuth()
+    const { jwt, userInfo } = useAuth()
+    const currentUsername = userInfo?.username
 
     const [like, setLike] = useState(false)
     const [likeClick, setLikeClick] = useState(false)
@@ -94,7 +95,8 @@ export default function Comment({ myComment, fname, lname, avatarUrl, rating, up
             const request = {
                 creatorUsername: rating.creatorUsername,
                 ratedBookId: rating.ratedBookId,
-                action: Interactions.LIKE
+                action: Interactions.LIKE,
+                interactUsername: currentUsername,
             }
             await interact(jwt, request)
         } catch {
@@ -118,7 +120,8 @@ export default function Comment({ myComment, fname, lname, avatarUrl, rating, up
             const request = {
                 creatorUsername: rating.creatorUsername,
                 ratedBookId: rating.ratedBookId,
-                action: Interactions.DISLIKE
+                action: Interactions.DISLIKE,
+                interactUsername: currentUsername,
             }
 
             await interact(jwt, request)
@@ -144,7 +147,8 @@ export default function Comment({ myComment, fname, lname, avatarUrl, rating, up
             const request = {
                 creatorUsername: rating.creatorUsername,
                 ratedBookId: rating.ratedBookId,
-                action: Interactions.LOVE
+                action: Interactions.LOVE,
+                interactUsername: currentUsername,
             }
 
             await interact(jwt, request)
