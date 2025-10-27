@@ -1,7 +1,6 @@
 // src/api/axiosConfig.js
 import axios from 'axios';
 
-// Use the environment variable (React only exposes vars prefixed with REACT_APP_)
 export const baseURL = import.meta.env.VITE_API_URL;
 
 const baseApi = axios.create({

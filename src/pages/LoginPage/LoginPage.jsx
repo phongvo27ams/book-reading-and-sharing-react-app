@@ -12,6 +12,7 @@ import FloatingHintTextBox from '../../components/FloatingHintTextBox/FloatingHi
 import Loader from '../../components/Loader/Loader';
 import { useAuth } from '../../provider/AuthContext';
 import { Messages } from '../../components/FoxCharacter/FoxCharacter';
+import { baseURL } from '../../api/apiConfig';
 
 const clx = classNames.bind(style);
 
@@ -125,7 +126,7 @@ function LoginPage() {
 
       <a
         className={clx("third-party-auth-button")}
-        href="http://localhost:8080/foxbase-be/oauth2/authorization/google"
+        href={`${baseURL}/oauth2/authorization/google`}
       >
         <img src={google} alt="Google" />
         <label>Log in with Google</label>
