@@ -41,12 +41,23 @@ Built with **React** and powered by **Vite** for lightning-fast development and 
 
 ### Installation
 
-```bash
+```
 # Clone the repository
 git clone https://github.com/coldwind444/foxbase-fe-react.git
 cd foxbase-fe-react
+```
 
-# Install dependencies
+# Install dependencies and run the app
+
+```
 npm install
-# or
-yarn install
+npm run dev
+```
+
+### Testing
+
+Use the following command to run the unit tests with coverage report:
+
+```
+npm run test
+```

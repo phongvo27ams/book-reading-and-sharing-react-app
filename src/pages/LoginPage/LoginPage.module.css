@@ -133,3 +133,11 @@
     transform: translate(-150px, 45px);
     color: black;
 }
+
+.error-message {
+    color: #ff6b6b;
+    font-size: 1.8rem;
+    margin-top: 8px;
+    text-align: center;
+    width: 50%;
+}

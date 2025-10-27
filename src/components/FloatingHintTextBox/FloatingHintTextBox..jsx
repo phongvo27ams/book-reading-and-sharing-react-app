@@ -6,7 +6,7 @@ import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'
 
 const clx = classNames.bind(style)
 
-function FloatingHintTextBox({value, type, onChange, hint}){
+function FloatingHintTextBox({value, type, onChange, hint, "data-testid": dataTestId}){
     const id = useId()
     const [show, setShow] = useState(false)
     const [tempType, setTempType] = useState(type)
@@ -21,7 +21,7 @@ function FloatingHintTextBox({value, type, onChange, hint}){
 
     return (
         <div className={clx('floating-hint-textbox')}>
-            <input id={id} type={tempType} onChange={onChange} required value={value} />
+            <input id={id} type={tempType} onChange={onChange} required value={value} data-testid={dataTestId} />
             <label htmlFor={id} className={clx('hint')}>{hint}</label>
             {type == 'password' && 
             <span className={clx('eye')} onClick={handleShowPassword}>
