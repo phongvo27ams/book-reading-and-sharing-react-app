@@ -17,7 +17,8 @@ export const Messages = Object.freeze({
     BLANK: ["Hey, don't worry buddy", "Just tell me who you are", "And fill in the blank !"],
     PASSWORD: ["Ok, now move to next step", "Please enter a password", "Read the rules carefully !"],
     INVALID_PASSWORD: ["Oops, something wrong", "You need stronger password", "Read the rules again !"],
-    INVALID_EMAIL: ["Hmm, that email doesn't look right", "Please check your email format", "and try again!"]
+    INVALID_EMAIL: ["Hmm, that email doesn't look right", "Please check your email format", "and try again!"],
+    SIGNUP_FAIL: ["Yikes, the ceremony glitched", "Your account wasn't created", "Give it another shot soon!"]
 });
 
 function FoxCharacter() {

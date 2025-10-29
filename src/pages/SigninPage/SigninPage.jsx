@@ -48,7 +48,7 @@ function SigninPage() {
 
     if (!isValidUsername(username.trim())) {
       setMessage(Messages.BLANK);
-      setErrorMessage('Username must be 6-32 characters, letters/numbers/_ only.');
+      setErrorMessage('Username must be 6-32 characters: letters, numbers, or underscores only.');
       return;
     }
 
@@ -84,6 +84,7 @@ function SigninPage() {
     setConfirm('');
     setNext(false);
     setErrorMessage('');
+    setValidPassword(false);
   }
 
   const handleRegister = async () => {
@@ -109,11 +110,27 @@ function SigninPage() {
       balance: 0,
     }
 
-    const success = await userRegister(info);
+    const result = await userRegister(info);
+    const success = typeof result === "boolean" ? result : result?.success;
 
     if (success) {
       resetAllFields();
       navigate('/auth/login');
+      return;
+    }
+
+    const { errorCode, errorMessage } = typeof result === "object" && result !== null ? result : {};
+
+    switch (errorCode) {
+      case "USERNAME_EXIST":
+        setErrorMessage("That username is already in use. Please choose another one.");
+        break;
+      case "EMAIL_EXIST":
+        setErrorMessage("That email is already associated with an account. Use a different email.");
+        break;
+      default:
+        setErrorMessage(errorMessage || "Registration failed. Please try again.");
+        break;
     }
   }
 
@@ -126,10 +143,38 @@ function SigninPage() {
         <div className={clx('slider', { next })}>
           {/* Step 1 */}
           <div className={clx('step-container')}>
-            <FloatingHintTextBox hint="Username" value={username} onChange={e => setUsername(e.target.value)} />
-            <FloatingHintTextBox hint="Email" value={email} onChange={e => setEmail(e.target.value)} />
-            <FloatingHintTextBox hint="First name" value={fName} onChange={e => setFName(e.target.value)} />
-            <FloatingHintTextBox hint="Last name" value={lName} onChange={e => setLName(e.target.value)} />
+            <FloatingHintTextBox
+              hint="Username"
+              value={username}
+              onChange={e => {
+                setUsername(e.target.value);
+                setErrorMessage('');
+              }}
+            />
+            <FloatingHintTextBox
+              hint="Email"
+              value={email}
+              onChange={e => {
+                setEmail(e.target.value);
+                setErrorMessage('');
+              }}
+            />
+            <FloatingHintTextBox
+              hint="First name"
+              value={fName}
+              onChange={e => {
+                setFName(e.target.value);
+                setErrorMessage('');
+              }}
+            />
+            <FloatingHintTextBox
+              hint="Last name"
+              value={lName}
+              onChange={e => {
+                setLName(e.target.value);
+                setErrorMessage('');
+              }}
+            />
 
             {errorMessage && <div className={clx('error-message')}><span>{errorMessage}</span></div>}
 
@@ -141,8 +186,26 @@ function SigninPage() {
 
           {/* Step 2 */}
           <div className={clx('step-container')}>
-            <FloatingHintTextBox hint="Password" data-testid="password-input" value={password} type="password" onChange={e => setPassword(e.target.value)} />
-            <FloatingHintTextBox hint="Confirm password" data-testid="confirm-input" value={confirm} type="password" onChange={e => setConfirm(e.target.value)} />
+            <FloatingHintTextBox
+              hint="Password"
+              data-testid="password-input"
+              value={password}
+              type="password"
+              onChange={e => {
+                setPassword(e.target.value);
+                setErrorMessage('');
+              }}
+            />
+            <FloatingHintTextBox
+              hint="Confirm password"
+              data-testid="confirm-input"
+              value={confirm}
+              type="password"
+              onChange={e => {
+                setConfirm(e.target.value);
+                setErrorMessage('');
+              }}
+            />
             <PasswordReqList password={password} confirm={confirm} onValidityChange={setValidPassword} />
 
             {errorMessage && <div className={clx('error-message')}><span>{errorMessage}</span></div>}

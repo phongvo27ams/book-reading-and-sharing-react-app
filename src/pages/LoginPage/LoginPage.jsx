@@ -85,14 +85,24 @@ function LoginPage() {
         hint="Username"
         value={username}
         type="text"
-        onChange={(e) => setUsername(e.target.value)}
+        onChange={(e) => {
+          setUsername(e.target.value);
+          if (errorMessage) {
+            setErrorMessage("");
+          }
+        }}
       />
 
       <FloatingHintTextBox
         hint="Password"
         value={password}
         type="password"
-        onChange={(e) => setPassword(e.target.value)}
+        onChange={(e) => {
+          setPassword(e.target.value);
+          if (errorMessage) {
+            setErrorMessage("");
+          }
+        }}
       />
 
       {/* Error message */}

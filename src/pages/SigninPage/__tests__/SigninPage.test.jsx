@@ -1,11 +1,10 @@
 import { vi } from "vitest";
+import { useEffect } from "react";
 import { MemoryRouter } from "react-router-dom";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 import SigninPage from "../SigninPage";
 import { Messages } from "../../../components/FoxCharacter/FoxCharacter";
-
-let setValidPasswordMock = vi.fn();
 
 // Mock navigate
 const mockNavigate = vi.fn();
@@ -159,7 +158,7 @@ describe("Component SigninPage: Step 2 Password Validation and Registration", ()
   });
 
   test("SHOULD call the user registration API with all data AND redirect to login WHEN all steps are successfully completed", async () => {
-    mockUserRegister.mockResolvedValue(true);
+    mockUserRegister.mockResolvedValue({ success: true });
 
     renderSigninPage();
     fillStep1();
@@ -168,10 +167,6 @@ describe("Component SigninPage: Step 2 Password Validation and Registration", ()
 
     fireEvent.change(screen.getByTestId("password-input"), { target: { value: "Abc123!" } });
     fireEvent.change(screen.getByTestId("confirm-input"), { target: { value: "Abc123!" } });
-
-    act(() => {
-      setValidPasswordMock(true);
-    });
 
     fireEvent.click(screen.getByText(/Join the Foxes/i));
 
@@ -193,6 +188,86 @@ describe("Component SigninPage: Step 2 Password Validation and Registration", ()
       expect(screen.getByLabelText(/Email/i).value).toBe("");
       expect(screen.getByLabelText(/First name/i).value).toBe("");
       expect(screen.getByLabelText(/Last name/i).value).toBe("");
+    });
+  });
+
+  test("SHOULD display a duplicate-username message WHEN the API reports the username already exists", async () => {
+    mockUserRegister.mockResolvedValue({ success: false, errorCode: "USERNAME_EXIST" });
+
+    renderSigninPage();
+    fillStep1();
+
+    await waitFor(() => screen.getByTestId("password-input"));
+
+    fireEvent.change(screen.getByTestId("password-input"), { target: { value: "Abc123!" } });
+    fireEvent.change(screen.getByTestId("confirm-input"), { target: { value: "Abc123!" } });
+
+    fireEvent.click(screen.getByText(/Join the Foxes/i));
+
+    await waitFor(() => {
+      expect(mockUserRegister).toHaveBeenCalled();
+      expect(screen.getByText(/That username is already in use/i)).toBeInTheDocument();
+    });
+  });
+
+  test("SHOULD display a duplicate-email message WHEN the API reports the email already exists", async () => {
+    mockUserRegister.mockResolvedValue({ success: false, errorCode: "EMAIL_EXIST" });
+
+    renderSigninPage();
+    fillStep1();
+
+    await waitFor(() => screen.getByTestId("password-input"));
+
+    fireEvent.change(screen.getByTestId("password-input"), { target: { value: "Abc123!" } });
+    fireEvent.change(screen.getByTestId("confirm-input"), { target: { value: "Abc123!" } });
+
+    fireEvent.click(screen.getByText(/Join the Foxes/i));
+
+    await waitFor(() => {
+      expect(mockUserRegister).toHaveBeenCalled();
+      expect(screen.getByText(/That email is already associated with an account/i)).toBeInTheDocument();
+    });
+  });
+
+  test("SHOULD display a generic signup failure message WHEN the API fails without a known error code", async () => {
+    mockUserRegister.mockResolvedValue({ success: false, errorMessage: "something broke" });
+
+    renderSigninPage();
+    fillStep1();
+
+    await waitFor(() => screen.getByTestId("password-input"));
+
+    fireEvent.change(screen.getByTestId("password-input"), { target: { value: "Abc123!" } });
+    fireEvent.change(screen.getByTestId("confirm-input"), { target: { value: "Abc123!" } });
+
+    fireEvent.click(screen.getByText(/Join the Foxes/i));
+
+    await waitFor(() => {
+      expect(mockUserRegister).toHaveBeenCalled();
+      expect(screen.getByText(/Registration failed\. Please try again\./i)).toBeInTheDocument();
+    });
+  });
+
+  test("SHOULD clear a displayed signup error WHEN the user edits the password field", async () => {
+    mockUserRegister.mockResolvedValue({ success: false, errorMessage: "Registration failed. Please try again." });
+
+    renderSigninPage();
+    fillStep1();
+
+    await waitFor(() => screen.getByTestId("password-input"));
+
+    fireEvent.change(screen.getByTestId("password-input"), { target: { value: "Abc123!" } });
+    fireEvent.change(screen.getByTestId("confirm-input"), { target: { value: "Abc123!" } });
+    fireEvent.click(screen.getByText(/Join the Foxes/i));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Registration failed\. Please try again\./i)).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByTestId("password-input"), { target: { value: "Abc123!9" } });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Registration failed\. Please try again\./i)).not.toBeInTheDocument();
     });
   });
 });
@@ -241,7 +316,7 @@ describe("Component SigninPage", () => {
     test.each(validUsernames)(
       "Accepts valid username: '%s'",
       async (username) => {
-        mockUserRegister.mockResolvedValue(true);
+        mockUserRegister.mockResolvedValue({ success: true });
         render(
           <MemoryRouter>
             <SigninPage />
@@ -303,16 +378,12 @@ describe("Component SigninPage", () => {
     test.each(validPasswords)(
       "Accepts valid password: '%s'",
       async (password) => {
-        mockUserRegister.mockResolvedValue(true);
+        mockUserRegister.mockResolvedValue({ success: true });
         render(
           <MemoryRouter>
             <SigninPage />
           </MemoryRouter>
         );
-
-        act(() => {
-          setValidPasswordMock(true);
-        });
 
         const usernameInput = screen.getByLabelText(/Username/i);
         const passwordInput = screen.getByTestId("password-input");

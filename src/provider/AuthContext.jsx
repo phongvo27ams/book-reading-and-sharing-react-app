@@ -43,17 +43,37 @@ export default function AuthProvider({ children }) {
 
     const userRegister = async (request) => {
         try {
-            setLoading(true)
-            const response = await register(request)
-            if (response.statusCode === 0) setMessage(Messages.AFTER_SIGNUP_SUCCESS)
-            return true
+            setLoading(true);
+            const response = await register(request);
+
+            if (response.statusCode === 0) {
+                setMessage(Messages.AFTER_SIGNUP_SUCCESS);
+                return { success: true };
+            }
+
+            const fallbackMessage = response.message || "Registration failed. Please try again.";
+            setMessage(Messages.SIGNUP_FAIL);
+            return { success: false, errorCode: response.statusCode, errorMessage: fallbackMessage };
         } catch (error) {
-            console.log(error)
-            if (error.response?.data?.statusCode === 1002) setMessage(Messages.USERNAME_EXIST)
-            if (error.response?.data?.statusCode === 2004) setMessage(Messages.EMAIL_EXIST)
-            return false
+            console.log(error);
+            const statusCode = error.response?.data?.statusCode;
+            const fallbackMessage =
+                error.response?.data?.message || "Registration failed. Please try again.";
+
+            if (statusCode === 1002) {
+                setMessage(Messages.USERNAME_EXIST);
+                return { success: false, errorCode: "USERNAME_EXIST" };
+            }
+
+            if (statusCode === 2004) {
+                setMessage(Messages.EMAIL_EXIST);
+                return { success: false, errorCode: "EMAIL_EXIST" };
+            }
+
+            setMessage(Messages.SIGNUP_FAIL);
+            return { success: false, errorCode: statusCode ?? "UNKNOWN", errorMessage: fallbackMessage };
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
     }
 
