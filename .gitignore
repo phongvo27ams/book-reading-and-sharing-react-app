@@ -1,5 +1,5 @@
 .env
-
+/test-results
 # Logs
 logs
 *.log
