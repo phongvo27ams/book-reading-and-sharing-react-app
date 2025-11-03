@@ -7,163 +7,151 @@ import { Messages } from "../components/FoxCharacter/FoxCharacter";
 const AuthContext = createContext();
 
 export default function AuthProvider({ children }) {
-    const [userInfo, setUserInfo] = useState(null)
-    const [jwt, setJwt] = useState(() => localStorage.getItem('jwt'));
-    const [message, setMessage] = useState(Messages.LOGIN)
-    const [loading, setLoading] = useState(false);
-    const [authenticated, setAuthenticated] = useState(false)
-    const [hasFetchedUser, setHasFetchedUser] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
+  const [jwt, setJwt] = useState(() => localStorage.getItem('jwt'));
+  const [message, setMessage] = useState(Messages.LOGIN);
+  const [loading, setLoading] = useState(true); // Start with loading state
+  const [authenticated, setAuthenticated] = useState(false);
 
-    const navigate = useNavigate()
+  const navigate = useNavigate();
 
-    useEffect(() => {
-        if (jwt) {
-            localStorage.setItem('jwt', jwt);
-        } else {
-            localStorage.removeItem('jwt');
-        }
-    }, [jwt]);
-
-    useEffect(() => {
-        const fetchUser = async () => {
-            if (!jwt || hasFetchedUser) return;
-            try {
-                const response = await getUserInfo(jwt);
-                setUserInfo(response.data);
-                setAuthenticated(true);
-                setHasFetchedUser(true);
-            } catch (error) {
-                console.error("Failed to fetch user info", error);
-                await logout();
-            }
-        };
-
-        fetchUser();
-    }, [jwt, hasFetchedUser]);
-
-    const userRegister = async (request) => {
-        try {
-            setLoading(true);
-            const response = await register(request);
-
-            if (response.statusCode === 0) {
-                setMessage(Messages.AFTER_SIGNUP_SUCCESS);
-                return { success: true };
-            }
-
-            const fallbackMessage = response.message || "Registration failed. Please try again.";
-            setMessage(Messages.SIGNUP_FAIL);
-            return { success: false, errorCode: response.statusCode, errorMessage: fallbackMessage };
-        } catch (error) {
-            console.log(error);
-            const statusCode = error.response?.data?.statusCode;
-            const fallbackMessage =
-                error.response?.data?.message || "Registration failed. Please try again.";
-
-            if (statusCode === 1002) {
-                setMessage(Messages.USERNAME_EXIST);
-                return { success: false, errorCode: "USERNAME_EXIST" };
-            }
-
-            if (statusCode === 2004) {
-                setMessage(Messages.EMAIL_EXIST);
-                return { success: false, errorCode: "EMAIL_EXIST" };
-            }
-
-            setMessage(Messages.SIGNUP_FAIL);
-            return { success: false, errorCode: statusCode ?? "UNKNOWN", errorMessage: fallbackMessage };
-        } finally {
-            setLoading(false);
-        }
+  // Save token to localStorage every time it changes
+  useEffect(() => {
+    if (jwt) {
+      localStorage.setItem('jwt', jwt);
+    } else {
+      localStorage.removeItem('jwt');
     }
+  }, [jwt]);
 
-    const login = async (credentials) => {
-        try {
-            setLoading(true);
-            const response = await userLogin(credentials);
+  // Check token and getUserInfo on startup
+  useEffect(() => {
+    const initializeAuth = async () => {
+      if (!jwt) {
+        setAuthenticated(false);
+        setLoading(false);
+        return;
+      }
 
-            if (response.data.authenticated) {
-                const token = response.data.token;
-                setJwt(token);
-                setAuthenticated(true)
-
-                const userResponse = await getUserInfo(token)
-                setUserInfo(userResponse.data)
-                setHasFetchedUser(true)
-
-                // Reset message after successful login
-                setMessage(Messages.LOGIN)
-                
-                navigate("/")
-                return true
-            } else {
-                setMessage(Messages.LOGIN_FAIL)
-                return false
-            }
-
-        } catch (error) {
-            setMessage(Messages.LOGIN_FAIL)
-            return false
-        } finally {
-            setLoading(false);
-        }
+      try {
+        const response = await getUserInfo(jwt);
+        setUserInfo(response.data);
+        setAuthenticated(true);
+      } catch (error) {
+        console.error("Failed to fetch user info", error);
+        await logout(false);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const logout = async () => {
-        try {
-            if (jwt) {
-                await userLogout(jwt);
-                navigate("/")
-            }
-        } catch (error) {
-            console.error("Logout error:", error);
-        } finally {
-            setJwt(null);
-            setAuthenticated(false)
-            setUserInfo(null)
-            setMessage(Messages.LOGIN) // Reset message to default LOGIN state
+    initializeAuth();
+  }, [jwt]);
+
+  const userRegister = async (request) => {
+    try {
+      setLoading(true);
+      const response = await register(request);
+
+      if (response.statusCode === 0) {
+        setMessage(Messages.AFTER_SIGNUP_SUCCESS);
+        return { success: true };
+      }
+
+      setMessage(Messages.SIGNUP_FAIL);
+      return { success: false };
+    } catch (error) {
+      console.log(error);
+      setMessage(Messages.SIGNUP_FAIL);
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (credentials) => {
+    try {
+      setLoading(true);
+      const response = await userLogin(credentials);
+
+      if (response.data.authenticated) {
+        const token = response.data.token;
+        setJwt(token);
+        setAuthenticated(true);
+
+        const userResponse = await getUserInfo(token);
+        setUserInfo(userResponse.data);
+
+        setMessage(Messages.LOGIN);
+        navigate("/");
+        return true;
+      } else {
+        setMessage(Messages.LOGIN_FAIL);
+        return false;
+      }
+    } catch (error) {
+      setMessage(Messages.LOGIN_FAIL);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = async (shouldNavigate = true) => {
+    try {
+      if (jwt) {
+        await userLogout(jwt);
+        if (shouldNavigate) navigate("/");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setJwt(null);
+      setAuthenticated(false);
+      setUserInfo(null);
+      setMessage(Messages.LOGIN);
+    }
+  };
+
+  // Refresh token every 1 hour
+  useEffect(() => {
+    if (!jwt) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const response = await refreshToken(jwt);
+        if (response.data.isAuthenticated) {
+          setJwt(response.data.token);
+        } else {
+          await logout(false);
         }
-    };
+      } catch (error) {
+        await logout(false);
+      }
+    }, 3600000);
 
-    useEffect(() => {
-        if (!jwt) return;
+    return () => clearInterval(intervalId);
+  }, [jwt]);
 
-        const intervalId = setInterval(async () => {
-            try {
-                const response = await refreshToken(jwt);
-
-                if (response.data.isAuthenticated) {
-                    setJwt(response.data.token);
-                } else {
-                    await logout();
-                }
-            } catch (error) {
-                await logout();
-            }
-        }, 3600000);
-
-        return () => clearInterval(intervalId);
-
-    }, [jwt]);
-
-    return (
-        <AuthContext.Provider value={
-            {
-                authenticated,
-                userRegister,
-                login,
-                logout,
-                loading,
-                message,
-                setMessage,
-                jwt,
-                setJwt,
-                userInfo,
-                setUserInfo,
-            }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  return (
+    <AuthContext.Provider
+      value={{
+        authenticated,
+        userRegister,
+        login,
+        logout,
+        loading,
+        message,
+        setMessage,
+        jwt,
+        setJwt,
+        userInfo,
+        setUserInfo,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export const useAuth = () => useContext(AuthContext);

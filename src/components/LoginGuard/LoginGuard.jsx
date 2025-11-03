@@ -8,11 +8,13 @@ const LoginGuard = ({ children }) => {
     const [hasRedirected, setHasRedirected] = useState(false);
 
     useEffect(() => {
-        if (!loading && authenticated && jwt && !hasRedirected) {
+        if (loading) return;
+        if (authenticated && jwt && !hasRedirected) {
             setHasRedirected(true);
             navigate('/', { replace: true });
         }
     }, [authenticated, jwt, loading, navigate, hasRedirected]);
+
 
     if (loading) {
         return (

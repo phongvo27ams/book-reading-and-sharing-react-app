@@ -8,7 +8,8 @@ const ProtectedRoute = ({ children }) => {
     const [hasRedirected, setHasRedirected] = useState(false);
 
     useEffect(() => {
-        if (!loading && !authenticated && !hasRedirected) {
+        if (loading) return;
+        if (!authenticated && !hasRedirected) {
             setHasRedirected(true);
             navigate('/auth/login', { replace: true });
         }
