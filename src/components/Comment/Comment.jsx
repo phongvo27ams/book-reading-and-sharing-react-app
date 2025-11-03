@@ -205,15 +205,15 @@ export default function Comment({ myComment, fname, lname, avatarUrl, rating, up
                     </p>
                 </div>
                 <div className={clx('interact')}>
-                    <div className={clx('interact-btn', { clicked: likeClick })} onClick={handleLikeClick}>
+                    <div className={clx('interact-btn', { clicked: likeClick })} onClick={handleLikeClick} data-testid="like-btn">
                         <FontAwesomeIcon className={clx({ 'blue-violet': like || myComment })} icon={like || myComment ? likeSolid : likeOutline} />
                         <label className={clx('count', { 'blue-violet': like || myComment })}>{likesN}</label>
                     </div>
-                    <div className={clx('interact-btn', { clicked: dislikeClick })} onClick={handleDislikeClick}>
+                    <div className={clx('interact-btn', { clicked: dislikeClick })} onClick={handleDislikeClick} data-testid="dislike-btn">
                         <FontAwesomeIcon className={clx({ 'orange': dislike || myComment })} icon={dislike || myComment ? dislikeSolid : dislikeOutline} />
                         <label className={clx('count', { 'orange': dislike || myComment })}>{dislikesN}</label>
                     </div>
-                    <div className={clx('interact-btn', { clicked: heartClick })} onClick={handleHeartClick}>
+                    <div className={clx('interact-btn', { clicked: heartClick })} onClick={handleHeartClick} data-testid="heart-btn">
                         <FontAwesomeIcon className={clx({ 'pink': heart || myComment })} icon={heart || myComment ? heartSolid : heartOutline} />
                         <label className={clx('count', { 'pink': heart || myComment })}>{lovesN}</label>
                     </div>
