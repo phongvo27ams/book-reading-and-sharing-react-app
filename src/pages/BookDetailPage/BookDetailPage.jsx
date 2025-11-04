@@ -115,7 +115,7 @@ function BookDetailPage() {
     const fetchBookFavorite = async () => {
         try {
             const response = await favoriteCheck(jwt, bookData.bookId)
-            const state = response.data.added
+            const state = response.data.isAdded
             setIsFavorite(state)
         } catch {
             console.log("Error checking favorite")
@@ -126,7 +126,7 @@ function BookDetailPage() {
         try {
             setUpdateFavorites(true)
             const response = await toggleAddToFavorites(jwt, bookData.bookId)
-            const isAdded = response.data.added
+            const isAdded = response.data.isAdded
             setIsFavorite(isAdded)
         } catch {
             console.log("Error toggling favorite")
@@ -249,15 +249,14 @@ function BookDetailPage() {
         setEmojiOpen(prev => !prev)
     }
 
-    const handleFavoriteClick = () => {
+    const handleFavoriteClick = async () => {
         if (!jwt) {
             navigate("/auth/login")
             return
         }
-        toggleFavorite()
-        setIsFavorite(!isFavorite)
         setClicked(true);
         setTimeout(() => setClicked(false), 300);
+        await toggleFavorite();
     };
 
     if (bookLoading || !bookData)
