@@ -16,11 +16,13 @@ import { favoriteCheck, getPurchasedBookIds, toggleAddToFavorites } from '../../
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Loader from '../../components/Loader/Loader'
 import { createZaloPayOrder, getZaloPayPaymentStatus, payUsingFoxBudget } from '../../api/purchaseApi'
+import { useNotification } from '../../components/Notification/NotificationContainer'
 
 const clx = classNames.bind(style)
 function BookDetailPage() {
     const { bookData, bookLoading, setUpdateFavorites, setId } = useBook()
     const { authenticated, jwt, userInfo, setUserInfo } = useAuth()
+    const { showNotification } = useNotification()
     const [searchParams] = useSearchParams()
 
     const [clicked, setClicked] = useState(false)
@@ -127,9 +129,17 @@ function BookDetailPage() {
             setUpdateFavorites(true)
             const response = await toggleAddToFavorites(jwt, bookData.bookId)
             const isAdded = response.data.isAdded
+            const message = response.data.message || (isAdded 
+                ? "Item has been added to your favorite collection" 
+                : "Item has been removed from your favorite collection")
+            
             setIsFavorite(isAdded)
+            
+            // Show notification
+            showNotification(message, 'success', 3000)
         } catch {
             console.log("Error toggling favorite")
+            showNotification("Failed to update favorite. Please try again.", 'error', 3000)
         } finally {
             setUpdateFavorites(false)
         }
