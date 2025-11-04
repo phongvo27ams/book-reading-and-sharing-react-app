@@ -137,10 +137,13 @@ function BookDetailPage() {
             
             // Show notification
             showNotification(message, 'success', 3000)
+            
+            // Trigger refresh by setting updateFavorites to false
+            // This will trigger useEffect in BookContext to fetch favorites
+            setUpdateFavorites(false)
         } catch {
             console.log("Error toggling favorite")
             showNotification("Failed to update favorite. Please try again.", 'error', 3000)
-        } finally {
             setUpdateFavorites(false)
         }
     }
