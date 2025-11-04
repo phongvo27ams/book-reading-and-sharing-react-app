@@ -53,16 +53,17 @@ export default function WorkPage({ type }) {
 
     const handleRemove = async (index, id) => {
         if (type === 1){
-            // Remove from favorites
+            // Remove from favorites - use removeItem which will refresh the list
             try {
-                const response = await toggleAddToFavorites(jwt, id)
-                const isAdded = response.data.isAdded
-                const message = response.data.message || (isAdded 
-                    ? "Item has been added to your favorite collection" 
-                    : "Item has been removed from your favorite collection")
-                
-                showNotification(message, 'success', 3000)
-                removeItem(index, id)
+                const response = await removeItem(index, id)
+                if (response) {
+                    const isAdded = response.data.isAdded
+                    const message = response.data.message || (isAdded 
+                        ? "Item has been added to your favorite collection" 
+                        : "Item has been removed from your favorite collection")
+                    
+                    showNotification(message, 'success', 3000)
+                }
             } catch (error) {
                 console.error('Error removing from favorites:', error)
                 showNotification("Failed to remove from favorites. Please try again.", 'error', 3000)
