@@ -7,12 +7,14 @@ import { Fragment, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../provider/AuthContext'
 import { useBook } from '../../provider/BookContext'
 import { uploadImage } from '../../api/cloudApi'
-import { publishBook } from '../../api/bookApi'
+import { publishBook, toggleAddToFavorites } from '../../api/bookApi'
 import Loader from '../../components/Loader/Loader'
+import { useNotification } from '../../components/Notification/NotificationContainer'
 
 const clx = classNames.bind(style)
 export default function WorkPage({ type }) {
     const { loading, userInfo, jwt } = useAuth()
+    const { showNotification } = useNotification()
 
     const formRef = useRef()
 
@@ -49,9 +51,22 @@ export default function WorkPage({ type }) {
 
     const imageInputRef = useRef(null)
 
-    const handleRemove = (index, id) => {
+    const handleRemove = async (index, id) => {
         if (type === 1){
-            removeItem(index, id)
+            // Remove from favorites
+            try {
+                const response = await toggleAddToFavorites(jwt, id)
+                const isAdded = response.data.isAdded
+                const message = response.data.message || (isAdded 
+                    ? "Item has been added to your favorite collection" 
+                    : "Item has been removed from your favorite collection")
+                
+                showNotification(message, 'success', 3000)
+                removeItem(index, id)
+            } catch (error) {
+                console.error('Error removing from favorites:', error)
+                showNotification("Failed to remove from favorites. Please try again.", 'error', 3000)
+            }
         } else {
             removeMyWork(index, id)
         }
