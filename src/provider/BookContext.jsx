@@ -47,14 +47,15 @@ export default function BookProvider({ children }) {
     }
 
     const removeItem = async (index, id) => {
-        if (!jwt) return
+        if (!jwt) return null
         try {
             const response = await toggleAddToFavorites(jwt, id)
-            if (!response.data.isAdded) {
-                await fetchFavorites()
-            }
+            // Always refresh favorites list after toggle
+            await fetchFavorites()
+            return response
         } catch {
             console.log('Error removing from favorites')
+            return null
         }
     }
 
