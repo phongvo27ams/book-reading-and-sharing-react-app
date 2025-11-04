@@ -162,29 +162,19 @@ export default function Comment({ myComment, fname, lname, avatarUrl, rating, up
 
 
     const formattedDate = (value) => {
-        const now = new Date()
-        const raw = "2025-05-10T09:21:50.264489";
-        const cleaned = raw.slice(0, 23);
-        const date = new Date(cleaned);
-
+        if (!value) return '';
+        const date = new Date(value);
+        const now = new Date();
         const duration = now - date;
 
-        const unitMap = new Map()
-        unitMap.set(0, 'y')
-        unitMap.set(1, 'M')
-        unitMap.set(2, 'd')
-        unitMap.set(3, 'h')
-        unitMap.set(4, 'm')
-        unitMap.set(5, 's')
-
-        const units = [365 * 30 * 86400 * 1000, 30 * 86400 * 1000, 86400 * 1000, 3600 * 1000, 60 * 1000, 1000]
-
-        for (const [index, value] of units.entries()) {
-            var t = Math.floor((duration / value))
-            var u = unitMap.get(index)
-            if (t > 1) return `${t}${u} ago`
-        }
-    }
+        if (duration < 10000) return 'just now'; // <10s
+        if (duration < 60 * 1000) return `${Math.floor(duration/1000)}s ago`; // <1m
+        if (duration < 3600 * 1000) return `${Math.floor(duration/(60*1000))}m ago`; // <1h
+        if (duration < 24*3600*1000) return `${Math.floor(duration/(3600*1000))}h ago`; // <1d
+        if (duration < 30*24*3600*1000) return `${Math.floor(duration/(24*3600*1000))}d ago`; // <1M
+        if (duration < 365*24*3600*1000) return `${Math.floor(duration/(30*24*3600*1000))}M ago`; // <1y
+        return `${Math.floor(duration/(365*24*3600*1000))}y ago`;
+    };
 
     if (!rating) return (<div></div>)
 

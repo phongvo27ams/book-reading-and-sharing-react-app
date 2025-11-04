@@ -209,3 +209,106 @@ describe('Comment Component', () => {
     })
   })
 })
+
+describe('Comment formattedDate', () => {
+  const mockRating = {
+    ratedBookId: 1,
+    creatorUsername: 'user01',
+    rate: 5,
+    comment: 'Good book!',
+    createdAt: '',
+  }
+
+  const fakeNow = new Date('2025-11-04T12:00:00.000Z')
+
+  beforeAll(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(fakeNow)
+  })
+
+  afterAll(() => {
+    vi.useRealTimers()
+  })
+
+  const renderAndGetTimeLabel = (createdAt) => {
+    render(
+      <Comment
+        myComment={false}
+        fname="Lorem"
+        lname="Ipsum"
+        avatarUrl=""
+        rating={{ ...mockRating, createdAt }}
+        updateInteractions={vi.fn()}
+      />
+    )
+
+    // Get the time label
+    return screen.getByText((content) => /ago|just now/i.test(content))
+  }
+
+  it('SHOULD show "just now" for <1s', () => {
+    const createdAt = new Date(fakeNow.getTime() - 500).toISOString()
+    const label = renderAndGetTimeLabel(createdAt)
+    expect(label).toHaveTextContent('just now')
+  })
+
+  it('SHOULD show "10s ago" for 10 seconds ago', () => {
+    const createdAt = new Date(fakeNow.getTime() - 10 * 1000).toISOString()
+    const label = renderAndGetTimeLabel(createdAt)
+    expect(label).toHaveTextContent('10s ago')
+  })
+
+  it('SHOULD show "1m ago" for 1 minute ago', () => {
+    const createdAt = new Date(fakeNow.getTime() - 60 * 1000).toISOString()
+    const label = renderAndGetTimeLabel(createdAt)
+    expect(label).toHaveTextContent('1m ago')
+  })
+
+  it('SHOULD show "5m ago" for 5 minutes ago', () => {
+    const createdAt = new Date(fakeNow.getTime() - 5 * 60 * 1000).toISOString()
+    const label = renderAndGetTimeLabel(createdAt)
+    expect(label).toHaveTextContent('5m ago')
+  })
+
+  it('SHOULD show "1h ago" for 1 hour ago', () => {
+    const createdAt = new Date(fakeNow.getTime() - 60 * 60 * 1000).toISOString()
+    const label = renderAndGetTimeLabel(createdAt)
+    expect(label).toHaveTextContent('1h ago')
+  })
+
+  it('SHOULD show "2h ago" for 2 hours ago', () => {
+    const createdAt = new Date(fakeNow.getTime() - 2 * 60 * 60 * 1000).toISOString()
+    const label = renderAndGetTimeLabel(createdAt)
+    expect(label).toHaveTextContent('2h ago')
+  })
+
+  it('SHOULD show "1d ago" for 1 day ago', () => {
+    const createdAt = new Date(fakeNow.getTime() - 24 * 60 * 60 * 1000).toISOString()
+    const label = renderAndGetTimeLabel(createdAt)
+    expect(label).toHaveTextContent('1d ago')
+  })
+
+  it('SHOULD show "2d ago" for 2 days ago', () => {
+    const createdAt = new Date(fakeNow.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString()
+    const label = renderAndGetTimeLabel(createdAt)
+    expect(label).toHaveTextContent('2d ago')
+  })
+
+  it('SHOULD show "1M ago" for 1 month ago', () => {
+    const createdAt = new Date(fakeNow.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    const label = renderAndGetTimeLabel(createdAt)
+    expect(label).toHaveTextContent('1M ago')
+  })
+
+  it('SHOULD show "1y ago" for 1 year ago', () => {
+    const createdAt = new Date(fakeNow.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString()
+    const label = renderAndGetTimeLabel(createdAt)
+    expect(label).toHaveTextContent('1y ago')
+  })
+
+  it('SHOULD show "3y ago" for 3 years ago', () => {
+    const createdAt = new Date(fakeNow.getTime() - 3 * 365 * 24 * 60 * 60 * 1000).toISOString()
+    const label = renderAndGetTimeLabel(createdAt)
+    expect(label).toHaveTextContent('3y ago')
+  })
+})

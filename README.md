@@ -56,7 +56,13 @@ npm run dev
 
 ### Testing
 
-Use the following command to run the unit tests with coverage report:
+To run a specific component/page test, e.g. `LoginPage`:
+
+```
+npx vitest run src/pages/LoginPage/__tests__/LoginPage.test.jsx --coverage
+```
+
+To run the entire unit tests with coverage report:
 
 ```
 npm run test
