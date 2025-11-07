@@ -305,7 +305,7 @@ function BookDetailPage() {
                         </div>
                         <div className={clx({ 'add-to-fav-btn': true, 'clicked': clicked })}
                             onClick={handleFavoriteClick}>
-                            <FontAwesomeIcon className={clx({ 'heart-icon': true, 'pink': isFavorite })}
+                            <FontAwesomeIcon data-testid="heart-icon" className={clx({ 'heart-icon': true, 'pink': isFavorite })}
                                 icon={isFavorite ? faHearSolid : faHeartOutlined} />
                             <label>Add to favourites</label>
                         </div>
