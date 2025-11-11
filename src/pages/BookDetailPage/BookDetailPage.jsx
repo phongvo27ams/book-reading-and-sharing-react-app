@@ -4,7 +4,7 @@ import EmojiPicker from 'emoji-picker-react'
 import style from './BookDetailPage.module.css'
 import classNames from 'classnames/bind'
 import { faHeart as faHeartOutlined } from '@fortawesome/free-regular-svg-icons'
-import { faFeather, faStar, faClipboardList, faDownload, faHeart as faHearSolid, faBookOpen, faShoppingCart, faArrowRight, faArrowLeft, faFaceSmile, faChevronDown, faBook, faChevronUp, faComment, faCommenting } from '@fortawesome/free-solid-svg-icons'
+import { faFeather, faStar, faClipboardList, faDownload, faHeart as faHeartSolid, faBookOpen, faShoppingCart, faArrowRight, faArrowLeft, faFaceSmile, faChevronDown, faBook, faChevronUp, faComment, faCommenting } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useState } from 'react'
 import zaloPayLogo from '../../assets/zaloPay.png'
 import foxBudgetLogo from '../../assets/foxb.png'
@@ -20,7 +20,7 @@ import { useNotification } from '../../components/Notification/NotificationConta
 
 const clx = classNames.bind(style)
 function BookDetailPage() {
-    const { bookData, bookLoading, setUpdateFavorites, setId } = useBook()
+    const { bookData, bookLoading, updateFavorites, setUpdateFavorites, setId, favorites } = useBook()
     const { authenticated, jwt, userInfo, setUserInfo } = useAuth()
     const { showNotification } = useNotification()
     const [searchParams] = useSearchParams()
@@ -41,6 +41,7 @@ function BookDetailPage() {
     const [rate, setRate] = useState(0)
     const [ratingLoading, setRatingLoading] = useState(false)
     const [ratingDisplayNum, setRatingDisplayNum] = useState(5)
+    const [justToggledFavorite, setJustToggledFavorite] = useState(false)
 
     const navigate = useNavigate()
 
@@ -115,6 +116,7 @@ function BookDetailPage() {
     }
 
     const fetchBookFavorite = async () => {
+        if (!jwt || !bookData) return
         try {
             const response = await favoriteCheck(jwt, bookData.bookId)
             const state = response.data.isAdded
@@ -125,14 +127,17 @@ function BookDetailPage() {
     }
 
     const toggleFavorite = async () => {
+        if (!jwt || !bookData) return
         try {
             setUpdateFavorites(true)
+            setJustToggledFavorite(true) // Set flag to prevent useEffect from overriding
             const response = await toggleAddToFavorites(jwt, bookData.bookId)
             const isAdded = response.data.isAdded
             const message = response.data.message || (isAdded 
                 ? "Item has been added to your favorite collection" 
                 : "Item has been removed from your favorite collection")
             
+            // Update state immediately - this will trigger icon change
             setIsFavorite(isAdded)
             
             // Show notification
@@ -140,11 +145,19 @@ function BookDetailPage() {
             
             // Trigger refresh by setting updateFavorites to false
             // This will trigger useEffect in BookContext to fetch favorites
-            setUpdateFavorites(false)
-        } catch {
-            console.log("Error toggling favorite")
+            // Delay a bit to ensure state is updated first
+            setTimeout(() => {
+                setUpdateFavorites(false)
+                // Clear flag after a delay to allow future refreshes
+                setTimeout(() => {
+                    setJustToggledFavorite(false)
+                }, 1000)
+            }, 200)
+        } catch (error) {
+            console.log("Error toggling favorite", error)
             showNotification("Failed to update favorite. Please try again.", 'error', 3000)
             setUpdateFavorites(false)
+            setJustToggledFavorite(false)
         }
     }
 
@@ -255,8 +268,75 @@ function BookDetailPage() {
         fetchRatingsCount()
         fetchMyRating()
         fetchBookRatings()
-        fetchBookFavorite()
+        // Don't call fetchBookFavorite here - use favorites from context instead
+        // fetchBookFavorite() is only used as fallback if favorites context is not available
     }, [jwt, bookData, bookLoading])
+
+    // Sync isFavorite with favorites from context (my collection)
+    // This is the primary source of truth - favorites from context
+    useEffect(() => {
+        if (!bookData) return
+        
+        // Skip sync if we just toggled to avoid race condition
+        // The toggleFavorite function already sets the state immediately
+        if (justToggledFavorite) return
+        
+        const currentBookId = bookData.bookId || bookData.id
+        if (!currentBookId) return
+        
+        // Check if current book is in favorites collection
+        // Handle different possible structures: {bookId}, {id}, or direct book object
+        let isInFavorites = false
+        
+        if (favorites && favorites.length > 0) {
+            isInFavorites = favorites.some(fav => {
+                if (!fav) return false
+                // If fav is a number/string, compare directly
+                if (typeof fav === 'number' || typeof fav === 'string') {
+                    return String(fav) === String(currentBookId)
+                }
+                // If fav is an object, check bookId or id property
+                if (typeof fav === 'object') {
+                    const favId = fav.bookId || fav.id
+                    if (favId) {
+                        return String(favId) === String(currentBookId)
+                    }
+                    // Check nested book object
+                    if (fav.book) {
+                        const bookId = fav.book.bookId || fav.book.id
+                        return bookId && String(bookId) === String(currentBookId)
+                    }
+                }
+                return false
+            })
+        }
+        
+        // Always update state based on favorites collection
+        setIsFavorite(isInFavorites)
+    }, [favorites, bookData, justToggledFavorite])
+
+    useEffect(() => {
+        // Only use API call as fallback if favorites from context is not available
+        // Favorites from context is the primary source of truth
+        if (!jwt || !bookData) return
+        
+        // If we have favorites from context, don't override with API call
+        // The favorites useEffect will handle the state
+        if (favorites && favorites.length >= 0) {
+            // Favorites context is available, skip API call
+            return
+        }
+        
+        // Fallback: use API call only if favorites context is not available
+        if (!updateFavorites && !justToggledFavorite) {
+            const timer = setTimeout(() => {
+                if (jwt && bookData && !justToggledFavorite) {
+                    fetchBookFavorite()
+                }
+            }, 500)
+            return () => clearTimeout(timer)
+        }
+    }, [updateFavorites, jwt, bookData, justToggledFavorite, favorites])
 
     const handleEmojiMenuClick = () => {
         setEmojiOpen(prev => !prev)
@@ -305,8 +385,14 @@ function BookDetailPage() {
                         </div>
                         <div className={clx({ 'add-to-fav-btn': true, 'clicked': clicked })}
                             onClick={handleFavoriteClick}>
-                            <FontAwesomeIcon data-testid="heart-icon" className={clx({ 'heart-icon': true, 'pink': isFavorite })}
-                                icon={isFavorite ? faHearSolid : faHeartOutlined} />
+                            <div className={clx('heart-wrapper', { 'favorited': isFavorite })}>
+                                <FontAwesomeIcon 
+                                    key={isFavorite ? 'favorite' : 'not-favorite'}
+                                    className={clx('heart-icon')}
+                                    icon={isFavorite ? faHeartSolid : faHeartOutlined}
+                                    style={isFavorite ? { color: '#ff0000' } : {}}
+                                />
+                            </div>
                             <label>Add to favourites</label>
                         </div>
                     </div>
