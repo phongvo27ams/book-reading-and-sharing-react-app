@@ -10,9 +10,11 @@ export function NotificationProvider({ children }) {
     const showNotification = useCallback((message, type = 'success', duration = 3000) => {
         const id = Date.now() + Math.random()
         const notification = { id, message, type, duration }
-        
-        setNotifications(prev => [...prev, notification])
-        
+
+        // Only show 1 notification at a time
+        // Replace old notification with new one
+        setNotifications([notification])
+
         return id
     }, [])
 
