@@ -444,10 +444,41 @@
     width: 200px;
 }
 
-.heart-icon {
+.heart-wrapper {
     aspect-ratio: 1/1;
     height: 20px;
     margin-left: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.heart-wrapper svg {
+    width: 100%;
+    height: 100%;
+    color: rgba(255, 255, 255, 0.7);
+    transition: color 0.2s ease;
+}
+
+.heart-wrapper.favorited svg,
+.heart-wrapper.favorited .heart-icon,
+.heart-wrapper.favorited .heart-icon svg {
+    color: #ff0000 !important;
+}
+
+.heart-wrapper.favorited svg path {
+    fill: #ff0000 !important;
+    color: #ff0000 !important;
+}
+
+.heart-icon {
+    width: 100%;
+    height: 100%;
+    color: inherit;
+}
+
+.heart-icon svg {
+    color: inherit;
 }
 
 .add-to-fav-btn.clicked {
