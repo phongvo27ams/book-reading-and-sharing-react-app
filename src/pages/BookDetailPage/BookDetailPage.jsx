@@ -30,6 +30,7 @@ function BookDetailPage() {
     const [paymentMethod, setPaymentMethod] = useState(1)
     const [emojiOpen, setEmojiOpen] = useState(false)
     const [comment, setComment] = useState('')
+    const [error, setError] = useState('')
     const [ratings, setRatings] = useState(null)
     const [isFavorite, setIsFavorite] = useState(false)
     const [ratingsCount, setRatingsCount] = useState(0)
@@ -69,6 +70,17 @@ function BookDetailPage() {
             console.log("Error fetching my rating")
         }
     }
+
+    const handleChange = (e) => {
+        const value = e.target.value;
+
+        if (value.length > 100) {
+            setError('Comment must be at most 100 characters');
+        } else {
+            setError('');
+            setComment(value);
+        }
+    };
 
     const handleRating = (value) => {
         setRate(value)
@@ -381,7 +393,9 @@ function BookDetailPage() {
                         </div>
                         <div className={clx('sub-info-container')}>
                             <FontAwesomeIcon className={clx('ratings-icon', 'orange')} icon={faClipboardList} />
-                            <h3 className={clx('orange')}>{ratingsCount + " ratings"}</h3>
+                            <h3 className={clx('orange')}>
+                                {ratingsCount} {ratingsCount === 1 ? 'rating' : 'ratings'}
+                            </h3>
                         </div>
                         <div className={clx({ 'add-to-fav-btn': true, 'clicked': clicked })}
                             onClick={handleFavoriteClick}>
@@ -495,11 +509,18 @@ function BookDetailPage() {
                                 </div>
                             </div>
                             <div className={clx('input-section')}>
-                                <textarea placeholder='Leave your comment here...' rows='5' cols='95'
+                                <textarea
+                                    placeholder="Leave your comment here..."
+                                    rows={5}
+                                    cols={95}
                                     value={comment}
-                                    onChange={(e) => setComment(e.target.value)} />
+                                    onChange={handleChange}
+                                />
                             </div>
                             <div className={clx('btn-section')}>
+                                <div>
+                                    {comment.length}/100 characters
+                                </div>
                                 <div className={clx('submit-btn')} onClick={rateBook}>Submit</div>
                                 <div className={clx('rloader-container')}>
                                     <Loader isLoading={ratingLoading} type='spinner' />
@@ -512,6 +533,9 @@ function BookDetailPage() {
                                 lazyLoadEmojis
                                 open={emojiOpen}
                                 onEmojiClick={(obj) => setComment(prev => prev + obj.emoji)} />
+                        </div>
+                        <div className={clx('error-message')}>
+                            {error && <span style={{ color: 'red' }}>{error}</span>}
                         </div>
                     </div>
                 ) : (
