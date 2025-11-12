@@ -151,8 +151,8 @@ function BookDetailPage() {
                 // Clear flag after a delay to allow future refreshes
                 setTimeout(() => {
                     setJustToggledFavorite(false)
-                }, 1000)
-            }, 200)
+                }, 100)
+            }, 50)
         } catch (error) {
             console.log("Error toggling favorite", error)
             showNotification("Failed to update favorite. Please try again.", 'error', 3000)

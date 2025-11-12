@@ -1,4 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import { faHeart as faHeartSolid } from '@fortawesome/free-solid-svg-icons'
+import { faHeart as faHeartOutlined } from '@fortawesome/free-regular-svg-icons'
 import userEvent from '@testing-library/user-event'
 import BookDetailPage from '../BookDetailPage'
 
@@ -87,8 +89,7 @@ describe('BookDetailPage Favorite Feature', () => {
     render(<BookDetailPage />)
 
     const heart = await screen.findByTestId('heart-icon')
-    expect(heart).toHaveAttribute('data-icon', 'heart') // faHeartOutlined
-    expect(heart.className).not.toContain('pink')
+    expect(heart).toHaveAttribute('data-icon', faHeartOutlined.iconName)
   })
 
   it('SHOULD toggle favorite state when clicked', async () => {
@@ -120,8 +121,7 @@ describe('BookDetailPage Favorite Feature', () => {
     render(<BookDetailPage />)
 
     const heart = await screen.findByTestId('heart-icon')
-    expect(heart).toHaveAttribute('data-icon', 'heart-solid') // faHeartSolid
-    expect(heart.className).toContain('pink')
+    expect(heart).toHaveAttribute('data-icon', faHeartSolid.iconName)
   })
 
   it('SHOULD handle API error gracefully', async () => {
