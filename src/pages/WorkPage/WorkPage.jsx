@@ -302,7 +302,7 @@ export default function WorkPage({ type }) {
                                 <div className={clx('input-area')}>
                                     <label className={clx('input-title')}>Price:</label>
                                     <div className={clx('input-box', 'very-short')}>
-                                        <input type='text' placeholder='Sell it ?' required
+                                        <input type='number' placeholder='Sell it ?' required
                                             onChange={(e) => setPrice(e.target.value)} />
                                     </div>
                                 </div>
