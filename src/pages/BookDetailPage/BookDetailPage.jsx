@@ -502,7 +502,7 @@ function BookDetailPage() {
                         <div className={clx('comment-box')}>
                             <div className={clx('first-section')}>
                                 <div className={clx('cmt-avatar')}>
-                                    <img src={userInfo.avatarUrl} />
+                                    <img src={userInfo.avatarUrl ? userInfo.avatarUrl : 'https://res.cloudinary.com/ddlpbdgv5/image/upload/v1763005620/328283141_e3fbbe1c-cb27-4c6a-8416-eeb4640dd148_ha532y.jpg'} /> :
                                 </div>
                                 <div className={clx('emoji')} onClick={handleEmojiMenuClick}>
                                     <FontAwesomeIcon icon={faFaceSmile} />
@@ -551,7 +551,7 @@ function BookDetailPage() {
                             updateInteractions={updateInteractions} />
                     )) : (<div></div>)}
                     { myRating ?
-                        (ratings.length > 5 &&
+                        (ratings && ratings.length > 5 &&
                         <div className={clx('pagination-controls')}>
                             <div className={clx('see-more')} onClick={() => setRatingDisplayNum(prev => prev + 5)}>
                                 <label>See more</label>
