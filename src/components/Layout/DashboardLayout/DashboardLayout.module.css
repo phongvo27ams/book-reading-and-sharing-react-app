@@ -1,11 +1,11 @@
 .wrapper {
-    height: 100vh;
     width: 100vw;
     background-color: #121212;
     display: flex;
     flex-direction: column;
     gap: 50px;
     overflow: hidden;
+    padding-bottom: 50px;
 }
 
 .dashboard-header {
