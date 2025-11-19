@@ -27,3 +27,13 @@ export const getZaloPayPaymentStatus = async (token, bookId) => {
     })
     return response.data
 }
+
+export const getZaloPayOrderStatus = async (token, appTransId) => {
+    const api = createApiWithToken(token)
+    const response = await api.get("/purchase/book/zalo-pay/order-status", {
+        params: {
+            appTransId: appTransId
+        }
+    })
+    return response.data
+}
