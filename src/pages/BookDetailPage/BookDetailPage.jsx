@@ -15,7 +15,7 @@ import { counting, getBookRatings, getMyRating, rateThisBook } from '../../api/r
 import { favoriteCheck, getPurchasedBookIds, toggleAddToFavorites } from '../../api/bookApi'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Loader from '../../components/Loader/Loader'
-import { createZaloPayOrder, getZaloPayPaymentStatus, payUsingFoxBudget } from '../../api/purchaseApi'
+import { createZaloPayOrder, getZaloPayPaymentStatus, getZaloPayOrderStatus, payUsingFoxBudget } from '../../api/purchaseApi'
 import { useNotification } from '../../components/Notification/NotificationContainer'
 
 const clx = classNames.bind(style)
@@ -30,7 +30,6 @@ function BookDetailPage() {
     const [paymentMethod, setPaymentMethod] = useState(1)
     const [emojiOpen, setEmojiOpen] = useState(false)
     const [comment, setComment] = useState('')
-    const [error, setError] = useState('')
     const [ratings, setRatings] = useState(null)
     const [isFavorite, setIsFavorite] = useState(false)
     const [ratingsCount, setRatingsCount] = useState(0)
@@ -40,6 +39,9 @@ function BookDetailPage() {
     const [walletLoading, setWalletLoading] = useState(false)
     const [checking, setChecking] = useState(false)
     const [rate, setRate] = useState(0)
+    const [currentOrderId, setCurrentOrderId] = useState(null)
+    const [orderStatus, setOrderStatus] = useState(null) // 'PENDING', 'PAID', 'FAILED', 'EXPIRED'
+    const [paymentError, setPaymentError] = useState(null)
     const [ratingLoading, setRatingLoading] = useState(false)
     const [ratingDisplayNum, setRatingDisplayNum] = useState(5)
     const [justToggledFavorite, setJustToggledFavorite] = useState(false)
@@ -70,17 +72,6 @@ function BookDetailPage() {
             console.log("Error fetching my rating")
         }
     }
-
-    const handleChange = (e) => {
-        const value = e.target.value;
-
-        if (value.length > 100) {
-            setError('Comment must be at most 100 characters');
-        } else {
-            setError('');
-            setComment(value);
-        }
-    };
 
     const handleRating = (value) => {
         setRate(value)
@@ -222,31 +213,69 @@ function BookDetailPage() {
                 setSlide(1)
                 setZaloPayLoading(false)
                 setChecking(false)
+                setOrderStatus('PAID')
+                setCurrentOrderId(null)
             }
         } catch {
             console.log('Check status fail: ')
         }
     }
 
-    useEffect(() => {
-        if (!checking) return
-
-        const interval = setInterval(() => {
-            if (zaloPayLoading) {
-                checkPaymentStatus()
-            } else {
-                clearInterval(interval)
+    const checkOrderStatus = async (appTransId) => {
+        if (!appTransId || !jwt) return null
+        
+        try {
+            const response = await getZaloPayOrderStatus(jwt, appTransId)
+            if (response.data) {
+                const status = response.data.status
+                setOrderStatus(status)
+                
+                if (status === 'PAID') {
+                    setSlide(1)
+                    setZaloPayLoading(false)
+                    setChecking(false)
+                    setCanRead(true)
+                    checkPuchase() // Refresh purchase status
+                    showNotification('Payment successful! You can now access the book.', 'success', 3000)
+                } else if (status === 'FAILED' || status === 'EXPIRED') {
+                    setZaloPayLoading(false)
+                    setChecking(false)
+                    setPaymentError(status === 'FAILED' ? 'Payment failed. Please try again.' : 'Payment expired. Please create a new order.')
+                }
+                
+                return status
             }
-        }, 3000)
+        } catch (error) {
+            console.error('Error checking order status:', error)
+            return null
+        }
+        return null
+    }
+
+    useEffect(() => {
+        if (!checking || !currentOrderId) return
+
+        const interval = setInterval(async () => {
+            const status = await checkOrderStatus(currentOrderId)
+            
+            // Stop checking if payment is completed or failed
+            if (status === 'PAID' || status === 'FAILED' || status === 'EXPIRED') {
+                clearInterval(interval)
+                setChecking(false)
+            }
+        }, 5000) // Check every 5 seconds
 
         return () => clearInterval(interval)
-    }, [checking, zaloPayLoading])
+    }, [checking, currentOrderId, jwt])
 
 
     const purchaseByZaloPay = async () => {
         if (!jwt) return
         try {
             setZaloPayLoading(true)
+            setPaymentError(null)
+            setOrderStatus(null)
+            
             const request = {
                 amount: bookData.price,
                 item: {
@@ -257,13 +286,36 @@ function BookDetailPage() {
                 }
             }
             const response = await createZaloPayOrder(jwt, request)
-            if (response.data.returncode === 1) {
-                window.open(response.data.orderurl, '_blank')
+            
+            if (response.data && response.data.zaloPayResponse && response.data.zaloPayResponse.returncode === 1) {
+                const appTransId = response.data.appTransId
+                const orderUrl = response.data.zaloPayResponse.orderurl
+                
+                // Lưu appTransId để track order
+                setCurrentOrderId(appTransId)
+                setOrderStatus('PENDING')
+                
+                window.open(orderUrl, '_blank')
                 setChecking(true)
+                showNotification('Please complete the payment in the opened window.', 'info', 5000)
+            } else {
+                setZaloPayLoading(false)
+                setPaymentError(response.message || 'Failed to create payment order. Please try again.')
+                showNotification(response.message || 'Failed to create payment order. Please try again.', 'error', 3000)
             }
-        } catch {
-            console.log('ZaloPay fail')
+        } catch (error) {
+            console.error('ZaloPay fail:', error)
+            setZaloPayLoading(false)
+            setPaymentError('Failed to create payment order. Please try again.')
+            showNotification('Payment initialization failed. Please try again.', 'error', 3000)
         }
+    }
+
+    const retryPayment = () => {
+        setPaymentError(null)
+        setOrderStatus(null)
+        setCurrentOrderId(null)
+        purchaseByZaloPay()
     }
 
     useEffect(() => {
@@ -393,9 +445,7 @@ function BookDetailPage() {
                         </div>
                         <div className={clx('sub-info-container')}>
                             <FontAwesomeIcon className={clx('ratings-icon', 'orange')} icon={faClipboardList} />
-                            <h3 className={clx('orange')}>
-                                {ratingsCount} {ratingsCount === 1 ? 'rating' : 'ratings'}
-                            </h3>
+                            <h3 className={clx('orange')}>{ratingsCount + " ratings"}</h3>
                         </div>
                         <div className={clx({ 'add-to-fav-btn': true, 'clicked': clicked })}
                             onClick={handleFavoriteClick}>
@@ -456,9 +506,65 @@ function BookDetailPage() {
                                                 <label className={clx('white-text')}>Total price:</label>
                                                 <label className={clx('green-text', 'bold', 'large-text')}>{bookData.price.toLocaleString() + "đ"}</label>
                                             </div>
-                                            <a className={clx('pay-btn', 'blue-btn')} onClick={purchaseByZaloPay}>
-                                                Go to ZaloPay gateway
-                                            </a>
+                                            
+                                            {/* Hiển thị trạng thái thanh toán */}
+                                            {orderStatus && (
+                                                <div className={clx('payment-status')} style={{
+                                                    padding: '10px',
+                                                    marginBottom: '10px',
+                                                    borderRadius: '5px',
+                                                    backgroundColor: orderStatus === 'PAID' ? '#4caf50' : 
+                                                                   orderStatus === 'FAILED' ? '#f44336' : 
+                                                                   orderStatus === 'EXPIRED' ? '#ff9800' : '#2196f3',
+                                                    color: 'white',
+                                                    textAlign: 'center',
+                                                    fontSize: '14px'
+                                                }}>
+                                                    {orderStatus === 'PAID' && '✓ Payment Successful'}
+                                                    {orderStatus === 'PENDING' && (
+                                                        <div>
+                                                            <div>⏳ Payment Pending...</div>
+                                                            {currentOrderId && (
+                                                                <div style={{ fontSize: '11px', marginTop: '5px', opacity: 0.9 }}>
+                                                                    Order ID: {currentOrderId.substring(0, 20)}...
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {orderStatus === 'FAILED' && '✗ Payment Failed'}
+                                                    {orderStatus === 'EXPIRED' && '⏰ Payment Expired'}
+                                                </div>
+                                            )}
+                                            
+                                            {/* Hiển thị lỗi */}
+                                            {paymentError && (
+                                                <div className={clx('payment-error')} style={{
+                                                    padding: '10px',
+                                                    marginBottom: '10px',
+                                                    borderRadius: '5px',
+                                                    backgroundColor: '#f44336',
+                                                    color: 'white',
+                                                    textAlign: 'center',
+                                                    fontSize: '12px'
+                                                }}>
+                                                    {paymentError}
+                                                </div>
+                                            )}
+                                            
+                                            {/* Nút chính */}
+                                            {(!orderStatus || orderStatus === 'PENDING') && (
+                                                <a className={clx('pay-btn', 'blue-btn')} onClick={purchaseByZaloPay} disabled={zaloPayLoading}>
+                                                    {orderStatus === 'PENDING' ? 'Waiting for payment...' : 'Go to ZaloPay gateway'}
+                                                </a>
+                                            )}
+                                            
+                                            {/* Nút retry khi failed hoặc expired */}
+                                            {(orderStatus === 'FAILED' || orderStatus === 'EXPIRED') && (
+                                                <a className={clx('pay-btn', 'blue-btn')} onClick={retryPayment} style={{ marginTop: '10px' }}>
+                                                    Try Again
+                                                </a>
+                                            )}
+                                            
                                             <div className={clx('loader-container')}>
                                                 <Loader isLoading={zaloPayLoading} type='spinner' />
                                             </div>
@@ -502,25 +608,18 @@ function BookDetailPage() {
                         <div className={clx('comment-box')}>
                             <div className={clx('first-section')}>
                                 <div className={clx('cmt-avatar')}>
-                                    <img src={userInfo.avatarUrl ? userInfo.avatarUrl : 'https://res.cloudinary.com/ddlpbdgv5/image/upload/v1763005620/328283141_e3fbbe1c-cb27-4c6a-8416-eeb4640dd148_ha532y.jpg'} /> :
+                                    <img src={userInfo.avatarUrl} />
                                 </div>
                                 <div className={clx('emoji')} onClick={handleEmojiMenuClick}>
                                     <FontAwesomeIcon icon={faFaceSmile} />
                                 </div>
                             </div>
                             <div className={clx('input-section')}>
-                                <textarea
-                                    placeholder="Leave your comment here..."
-                                    rows={5}
-                                    cols={95}
+                                <textarea placeholder='Leave your comment here...' rows='5' cols='95'
                                     value={comment}
-                                    onChange={handleChange}
-                                />
+                                    onChange={(e) => setComment(e.target.value)} />
                             </div>
                             <div className={clx('btn-section')}>
-                                <div>
-                                    {comment.length}/100 characters
-                                </div>
                                 <div className={clx('submit-btn')} onClick={rateBook}>Submit</div>
                                 <div className={clx('rloader-container')}>
                                     <Loader isLoading={ratingLoading} type='spinner' />
@@ -533,9 +632,6 @@ function BookDetailPage() {
                                 lazyLoadEmojis
                                 open={emojiOpen}
                                 onEmojiClick={(obj) => setComment(prev => prev + obj.emoji)} />
-                        </div>
-                        <div className={clx('error-message')}>
-                            {error && <span style={{ color: 'red' }}>{error}</span>}
                         </div>
                     </div>
                 ) : (
@@ -551,7 +647,7 @@ function BookDetailPage() {
                             updateInteractions={updateInteractions} />
                     )) : (<div></div>)}
                     { myRating ?
-                        (ratings && ratings.length > 5 &&
+                        (ratings.length > 5 &&
                         <div className={clx('pagination-controls')}>
                             <div className={clx('see-more')} onClick={() => setRatingDisplayNum(prev => prev + 5)}>
                                 <label>See more</label>
