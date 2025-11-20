@@ -58,11 +58,22 @@ export default function AuthProvider({ children }) {
         return { success: true };
       }
 
-      setMessage(Messages.SIGNUP_FAIL);
+      if (response.statusCode === 1002) {
+        setMessage(Messages.USERNAME_EXIST);
+      } else if (response.statusCode === 2004) {
+        setMessage(Messages.EMAIL_EXIST);
+      } else {
+        setMessage(Messages.SIGNUP_FAIL);
+      }
       return { success: false };
     } catch (error) {
-      console.log(error);
-      setMessage(Messages.SIGNUP_FAIL);
+      if (error?.response?.data?.statusCode === 1002) {
+        setMessage(Messages.USERNAME_EXIST);
+      } else if (error?.response?.data?.statusCode === 2004) {
+        setMessage(Messages.EMAIL_EXIST);
+      } else {
+        setMessage(Messages.SIGNUP_FAIL);
+      }
       return { success: false };
     } finally {
       setLoading(false);

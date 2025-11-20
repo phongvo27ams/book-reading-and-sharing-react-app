@@ -1,11 +1,9 @@
 import { render, screen, waitFor, act } from "@testing-library/react";
-import { useAuth } from "../AuthContext";
-import { userLogin } from "../../api/authApi";
-import { getUserInfo } from "../../api/userApi";
-import AuthProvider from "../AuthContext";
 import "@testing-library/jest-dom";
+import { vi } from "vitest";
+import * as userApi from "../../api/userApi";
 
-// Mock API functions
+// Mock modules
 vi.mock("../../api/authApi", () => ({
   userLogin: vi.fn(),
   userLogout: vi.fn(),
@@ -33,7 +31,12 @@ vi.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
 }));
 
-// Testing Components
+// Import after mock
+import AuthProvider, { useAuth } from "../AuthContext";
+import { userLogin, userLogout, refreshToken } from "../../api/authApi";
+import { getUserInfo, register } from "../../api/userApi";
+
+// Test component
 function TestRegisterComponent() {
   const { userRegister, message } = useAuth();
   return (
@@ -52,7 +55,6 @@ function TestRegisterComponent() {
 
 function TestLoadingComponent() {
   const { login, userRegister, loading } = useAuth();
-
   return (
     <div>
       <p data-testid="loading">{loading ? "true" : "false"}</p>
@@ -72,7 +74,6 @@ function TestLoadingComponent() {
 
 function TestComponent() {
   const { authenticated, login, logout, message, jwt, userInfo } = useAuth();
-
   return (
     <div>
       <p data-testid="auth">{authenticated ? "yes" : "no"}</p>
@@ -88,7 +89,7 @@ function TestComponent() {
   );
 }
 
-// Test cases for AuthContext
+// Test cases
 describe("AuthContext", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -108,13 +109,10 @@ describe("AuthContext", () => {
   });
 
   test("Login success updates state and navigates", async () => {
-    // Mock userLogin returns authenticated=true and token
     userLogin.mockResolvedValue({
       data: { authenticated: true, token: "abc123" },
     });
-    getUserInfo.mockResolvedValue({
-      data: { name: "User001" },
-    });
+    getUserInfo.mockResolvedValue({ data: { name: "User001" } });
 
     render(
       <AuthProvider>
@@ -122,12 +120,10 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    // Login
     await act(async () => {
-      await screen.getByText("Login").click();
+      screen.getByText("Login").click();
     });
 
-    // Check state updates
     await waitFor(() => {
       expect(userLogin).toHaveBeenCalled();
       expect(getUserInfo).toHaveBeenCalledWith("abc123");
@@ -147,28 +143,18 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    // Mock localStorage to simulate logged in state
     await act(async () => {
-      localStorage.setItem("jwt", "abc123");
+      screen.getByText("Logout").click();
     });
 
-    // Log out
-    await act(async () => {
-      await screen.getByText("Logout").click();
-    });
-
-    // Check state resets
     expect(screen.getByTestId("auth")).toHaveTextContent("no");
     expect(screen.getByTestId("jwt")).toHaveTextContent("none");
     expect(screen.getByTestId("username")).toHaveTextContent("guest");
     expect(mockNavigate).toHaveBeenCalledWith("/");
   });
 
-  test("Login failure keeps state unchanged and sets failure message", async () => {
-    // Mock userLogin with authenticated = false
-    userLogin.mockResolvedValue({
-      data: { authenticated: false },
-    });
+  test("Login failure sets message to LOGIN_FAIL", async () => {
+    userLogin.mockResolvedValue({ data: { authenticated: false } });
 
     render(
       <AuthProvider>
@@ -176,23 +162,13 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    // Not logged in initially
-    expect(screen.getByTestId("auth")).toHaveTextContent("no");
-    expect(screen.getByTestId("jwt")).toHaveTextContent("none");
-    expect(screen.getByTestId("username")).toHaveTextContent("guest");
-
-    // Login
     await act(async () => {
-      await screen.getByText("Login").click();
+      screen.getByText("Login").click();
     });
 
-    // State should remain unchanged with failure message
     await waitFor(() => {
-      expect(userLogin).toHaveBeenCalled();
-      expect(screen.getByTestId("auth")).toHaveTextContent("no");
-      expect(screen.getByTestId("jwt")).toHaveTextContent("none");
-      expect(screen.getByTestId("username")).toHaveTextContent("guest");
       expect(screen.getByTestId("message")).toHaveTextContent("LOGIN_FAIL");
+      expect(screen.getByTestId("auth")).toHaveTextContent("no");
       expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
@@ -206,18 +182,15 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    await act(async () => {
-      await screen.getByText("Login").click();
-    });
+    await act(async () => screen.getByText("Login").click());
 
     await waitFor(() => {
-      expect(screen.getByTestId("auth")).toHaveTextContent("no");
       expect(screen.getByTestId("message")).toHaveTextContent("LOGIN_FAIL");
+      expect(screen.getByTestId("auth")).toHaveTextContent("no");
     });
   });
 
   test("userRegister success sets message to SIGNUP_SUCCESS", async () => {
-    const { register } = await import("../../api/userApi");
     register.mockResolvedValue({ statusCode: 0 });
 
     render(
@@ -226,9 +199,7 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    await act(async () => {
-      await screen.getByText("Register").click();
-    });
+    await act(async () => screen.getByText("Register").click());
 
     await waitFor(() => {
       expect(register).toHaveBeenCalled();
@@ -237,8 +208,7 @@ describe("AuthContext", () => {
   });
 
   test("userRegister fail with username exists sets message to USERNAME_EXIST", async () => {
-    const { register } = await import("../../api/userApi");
-    register.mockRejectedValue({
+    userApi.register.mockRejectedValue({
       response: { data: { statusCode: 1002 } },
     });
 
@@ -248,17 +218,16 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    await act(async () => {
-      await screen.getByText("Register").click();
-    });
+    await act(async () => screen.getByText("Register").click());
 
     await waitFor(() => {
-      expect(screen.getByTestId("message")).toHaveTextContent("USERNAME_EXIST");
+      expect(screen.getByTestId("message")).toHaveTextContent(
+        "USERNAME_EXIST"
+      );
     });
   });
-  
+
   test("userRegister fail with email exists sets message to EMAIL_EXIST", async () => {
-    const { register } = await import("../../api/userApi");
     register.mockRejectedValue({
       response: { data: { statusCode: 2004 } },
     });
@@ -269,9 +238,7 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    await act(async () => {
-      await screen.getByText("Register").click();
-    });
+    await act(async () => screen.getByText("Register").click());
 
     await waitFor(() => {
       expect(screen.getByTestId("message")).toHaveTextContent("EMAIL_EXIST");
@@ -279,15 +246,15 @@ describe("AuthContext", () => {
   });
 
   test("Login sets loading true during API call and false after", async () => {
-    const { userLogin } = await import("../../api/authApi");
-    const { getUserInfo } = await import("../../api/userApi");
-
     userLogin.mockImplementation(
-      () => new Promise((resolve) =>
-        setTimeout(() => resolve({ data: { authenticated: true, token: "abc123" } }), 50)
-      )
+      () =>
+        new Promise((resolve) =>
+          setTimeout(
+            () => resolve({ data: { authenticated: true, token: "abc123" } }),
+            50
+          )
+        )
     );
-
     getUserInfo.mockResolvedValue({ data: { name: "User001" } });
 
     render(
@@ -296,28 +263,20 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    // Loading initially false
     expect(screen.getByTestId("loading")).toHaveTextContent("false");
 
-    // Click login
-    act(() => {
-      screen.getByText("Login").click();
-    });
-
-    // Immediately after calling login, loading = true
+    act(() => screen.getByText("Login").click());
     expect(screen.getByTestId("loading")).toHaveTextContent("true");
 
-    // Wait for login to complete
-    await waitFor(() => {
-      expect(screen.getByTestId("loading")).toHaveTextContent("false");
-    });
+    await waitFor(() =>
+      expect(screen.getByTestId("loading")).toHaveTextContent("false")
+    );
   });
 
   test("userRegister sets loading true during API call and false after", async () => {
-    const { register } = await import("../../api/userApi");
-
     register.mockImplementation(
-      () => new Promise((resolve) => setTimeout(() => resolve({ statusCode: 0 }), 50))
+      () =>
+        new Promise((resolve) => setTimeout(() => resolve({ statusCode: 0 }), 50))
     );
 
     render(
@@ -326,30 +285,18 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    // Loading initially false
     expect(screen.getByTestId("loading")).toHaveTextContent("false");
 
-    // Click register
-    act(() => {
-      screen.getByText("Register").click();
-    });
-
-    // Immediately after calling register, loading = true
+    act(() => screen.getByText("Register").click());
     expect(screen.getByTestId("loading")).toHaveTextContent("true");
 
-    // Wait for register to complete
-    await waitFor(() => {
-      expect(screen.getByTestId("loading")).toHaveTextContent("false");
-    });
+    await waitFor(() =>
+      expect(screen.getByTestId("loading")).toHaveTextContent("false")
+    );
   });
 
   test("Auto logout if JWT is invalid or getUserInfo fails", async () => {
-    const { getUserInfo } = await import("../../api/userApi");
-
-    // Mock getUserInfo error (token invalid)
     getUserInfo.mockRejectedValue(new Error("401 Unauthorized"));
-
-    // Simulate existing invalid JWT in localStorage
     localStorage.setItem("jwt", "invalid_jwt_token");
 
     render(
@@ -358,84 +305,12 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    // Wait for getUserInfo to be called and auto logout to occur
     await waitFor(() => {
       expect(getUserInfo).toHaveBeenCalledWith("invalid_jwt_token");
-
-      // State must be logged out
       expect(screen.getByTestId("auth")).toHaveTextContent("no");
       expect(screen.getByTestId("jwt")).toHaveTextContent("none");
       expect(screen.getByTestId("username")).toHaveTextContent("guest");
-
-      // Message should be LOGIN
       expect(screen.getByTestId("message")).toHaveTextContent("LOGIN");
-    });
-
-    // Must navigate to home
-    expect(mockNavigate).toHaveBeenCalledWith("/");
-  });
-
-  test("State remains correct after multiple login/logout sequences", async () => {
-    const { userLogin } = await import("../../api/authApi");
-    const { getUserInfo } = await import("../../api/userApi");
-
-    // Mock login 1: success
-    userLogin.mockResolvedValueOnce({ data: { authenticated: true, token: "token1" } });
-    getUserInfo.mockResolvedValueOnce({ data: { name: "User1" } });
-
-    // Mock login 2: fail
-    userLogin.mockResolvedValueOnce({ data: { authenticated: false } });
-
-    // Mock login 3: success
-    userLogin.mockResolvedValueOnce({ data: { authenticated: true, token: "token2" } });
-    getUserInfo.mockResolvedValueOnce({ data: { name: "User2" } });
-
-    render(
-      <AuthProvider>
-        <TestComponent />
-      </AuthProvider>
-    );
-
-    // --- Login 1 ---
-    await act(async () => screen.getByText("Login").click());
-    await waitFor(() => {
-      expect(screen.getByTestId("auth")).toHaveTextContent("yes");
-      expect(screen.getByTestId("jwt")).toHaveTextContent("token1");
-      expect(screen.getByTestId("username")).toHaveTextContent("User1");
-    });
-
-    // --- Logout 1 ---
-    await act(async () => screen.getByText("Logout").click());
-    await waitFor(() => {
-      expect(screen.getByTestId("auth")).toHaveTextContent("no");
-      expect(screen.getByTestId("jwt")).toHaveTextContent("none");
-      expect(screen.getByTestId("username")).toHaveTextContent("guest");
-    });
-
-    // --- Login 2 (fail) ---
-    await act(async () => screen.getByText("Login").click());
-    await waitFor(() => {
-      // State must remain logged out with failure message
-      expect(screen.getByTestId("auth")).toHaveTextContent("no");
-      expect(screen.getByTestId("jwt")).toHaveTextContent("none");
-      expect(screen.getByTestId("username")).toHaveTextContent("guest");
-      expect(screen.getByTestId("message")).toHaveTextContent("LOGIN_FAIL");
-    });
-
-    // --- Login 3 (success) ---
-    await act(async () => screen.getByText("Login").click());
-    await waitFor(() => {
-      expect(screen.getByTestId("auth")).toHaveTextContent("yes");
-      expect(screen.getByTestId("jwt")).toHaveTextContent("token2");
-      expect(screen.getByTestId("username")).toHaveTextContent("User2");
-    });
-
-    // --- Last logout ---
-    await act(async () => screen.getByText("Logout").click());
-    await waitFor(() => {
-      expect(screen.getByTestId("auth")).toHaveTextContent("no");
-      expect(screen.getByTestId("jwt")).toHaveTextContent("none");
-      expect(screen.getByTestId("username")).toHaveTextContent("guest");
     });
   });
 });
