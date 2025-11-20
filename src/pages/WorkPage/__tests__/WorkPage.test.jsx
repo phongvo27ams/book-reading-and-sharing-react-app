@@ -240,4 +240,133 @@ describe('WorkPage component', () => {
       expect(mockRemoveMyWork).toHaveBeenCalled()
     })
   })
+
+  it('SHOULD show error when image file type is invalid', async () => {
+    const { container } = render(<WorkPage type={2} />);
+
+    // Fill all required text fields
+    fireEvent.change(screen.getByPlaceholderText(/Give your book a fantastic title/i), { target: { value: 'My Title' } });
+    fireEvent.change(screen.getByPlaceholderText(/First name/i), { target: { value: 'John' } });
+    fireEvent.change(screen.getByPlaceholderText(/Last name/i), { target: { value: 'Doe' } });
+    fireEvent.change(screen.getByPlaceholderText(/What is the genre/i), { target: { value: 'SciFi' } });
+    fireEvent.change(screen.getByPlaceholderText(/Write a short description/i), { target: { value: 'Nice book' } });
+    fireEvent.change(screen.getByPlaceholderText(/Sell it \?/i), { target: { value: '0' } });
+
+    // Fill a valid PDF file (required)
+    const pdfInput = container.querySelector('input[type="file"][accept="application/pdf"]');
+    const validPdf = new File(['dummy'], 'book.pdf', { type: 'application/pdf' });
+    fireEvent.change(pdfInput, { target: { files: [validPdf] } });
+
+    // Find image input
+    const imageInput = container.querySelector('input[type="file"][accept*="image"]');
+    expect(imageInput).not.toBeNull();
+
+    // Invalid image file
+    const invalidImage = new File(['dummy'], 'photo.txt', { type: 'text/plain' });
+    fireEvent.change(imageInput, { target: { files: [invalidImage] } });
+
+    // Attempt publish
+    fireEvent.click(screen.getByTestId('publish-btn'));
+
+    // Expect correct validation error
+    await waitFor(() => {
+      expect(mockShowNotification).toHaveBeenCalledWith(
+        "Invalid image format! Allowed types: JPG, JPEG, PNG.",
+        "error",
+        3000
+      );
+    });
+  });
+
+  it("SHOULD show error when title exceeds 80 characters", async () => {
+    const longTitle = "A".repeat(81); // 81 characters
+
+    const { container } = render(<WorkPage type={2} />);
+
+    // Fill title over 80 chars
+    const titleInput = screen.getByPlaceholderText(/Give your book a fantastic title/i);
+    fireEvent.change(titleInput, { target: { value: longTitle } });
+
+    // Check counter turns red (UI validation)
+    const counter = container.querySelector(".textbox-counter");
+    expect(counter).not.toBeNull();
+    expect(counter.classList.contains("red")).toBe(true);
+
+    // Fill other required fields so publish logic proceeds
+    fireEvent.change(screen.getByPlaceholderText(/First name/i), { target: { value: "John" } });
+    fireEvent.change(screen.getByPlaceholderText(/Last name/i), { target: { value: "Doe" } });
+    fireEvent.change(screen.getByPlaceholderText(/What is the genre/i), { target: { value: "SciFi" } });
+    fireEvent.change(screen.getByPlaceholderText(/Write a short description/i), { target: { value: "Nice book" } });
+    fireEvent.change(screen.getByPlaceholderText(/Sell it \?/i), { target: { value: "0" } });
+
+    // Mock a valid PDF file
+    const pdfInput = container.querySelector('input[type="file"][accept="application/pdf"]');
+    const validPdf = new File(["dummy"], "book.pdf", { type: "application/pdf" });
+    fireEvent.change(pdfInput, { target: { files: [validPdf] } });
+
+    // Attempt to publish
+    fireEvent.click(screen.getByTestId("publish-btn"));
+
+    await waitFor(() => {
+      expect(mockShowNotification).toHaveBeenCalledWith(
+        "Title must not exceed 80 characters.",
+        "error",
+        3000
+      );
+    });
+  });
+
+  it("SHOULD show error when description exceeds 300 characters", async () => {
+    const longDesc = "A".repeat(301); // 301 characters
+
+    const { container } = render(<WorkPage type={2} />);
+
+    // Fill description over 300 chars
+    const descInput = screen.getByPlaceholderText(/Write a short description about your book/i);
+    fireEvent.change(descInput, { target: { value: longDesc } });
+
+    // Check counter turns red (UI validation)
+    const counter = container.querySelector(".textarea-counter");
+    expect(counter).not.toBeNull();
+    expect(counter.classList.contains("red")).toBe(true);
+
+    // Fill all required fields to reach publish logic
+    fireEvent.change(screen.getByPlaceholderText(/Give your book a fantastic title/i), {
+      target: { value: "My Title" },
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/First name/i), {
+      target: { value: "John" },
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/Last name/i), {
+      target: { value: "Doe" },
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/What is the genre/i), {
+      target: { value: "SciFi" },
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/Sell it \?/i), {
+      target: { value: "0" },
+    });
+
+    // Mock valid PDF file
+    const pdfInput = container.querySelector(
+      'input[type="file"][accept="application/pdf"]'
+    );
+    const pdf = new File(["dummy"], "book.pdf", { type: "application/pdf" });
+    fireEvent.change(pdfInput, { target: { files: [pdf] } });
+
+    // Attempt to publish
+    fireEvent.click(screen.getByTestId("publish-btn"));
+
+    await waitFor(() => {
+      expect(mockShowNotification).toHaveBeenCalledWith(
+        "Description must not exceed 300 characters.",
+        "error",
+        3000
+      );
+    });
+  });
 })
