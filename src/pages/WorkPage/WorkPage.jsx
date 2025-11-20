@@ -6,7 +6,7 @@ import RateStars from '../../components/RateStars/RateStars'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../provider/AuthContext'
 import { useBook } from '../../provider/BookContext'
-import { uploadImage } from '../../api/cloudApi'
+// import { uploadImage } from '../../api/cloudApi'
 import { publishBook, toggleAddToFavorites } from '../../api/bookApi'
 import Loader from '../../components/Loader/Loader'
 import { useNotification } from '../../components/Notification/NotificationContainer'
@@ -35,7 +35,8 @@ export default function WorkPage({ type }) {
     } = useBook()
 
     const [imgFile, setImgFile] = useState(null)
-    const [contentUrl, setContentUrl] = useState()
+    // const [contentUrl, setContentUrl] = useState()
+    const [pdfFile, setPdfFile] = useState(null)
     const [previewUrl, setPreviewUrl] = useState(null)
     const [pbloading, setPbLoading] = useState(false)
 
@@ -50,6 +51,7 @@ export default function WorkPage({ type }) {
     const [description, setDescription] = useState('')
 
     const imageInputRef = useRef(null)
+    const pdfInputRef = useRef(null)
 
     const handleRemove = async (index, id) => {
         if (type === 1){
@@ -77,6 +79,10 @@ export default function WorkPage({ type }) {
         imageInputRef.current.click()
     }
 
+    const handlePdfChoose = () => {
+        pdfInputRef.current.click()
+    }
+
     const handleImgFileChange = (e) => {
         const file = e.target.files[0];
         setImgFile(file)
@@ -85,47 +91,75 @@ export default function WorkPage({ type }) {
         setPreviewUrl(objectUrl);
     }
 
+    const handlePdfFileChange = (e) => {
+        const file = e.target.files[0]
+        if (file) setPdfFile(file)
+    }
+
     const clearImg = () => {
         if (previewUrl) URL.revokeObjectURL(previewUrl)
         setImgFile(null)
         setPreviewUrl(null)
     }
 
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+
     const handlePublish = async () => {
-        if (!jwt) return
-        if (!title || !imgFile || !contentUrl || !firstName || !lastName || !genre || !description) {
-            alert("Please fill out all required fields.")
-            return
-        }
-        try {
-            setPbLoading(true)
-            setUpdateWorks(true)
-            const imgUrl = await uploadImage(imgFile)
+      if (!jwt) return
 
-            const request = {
-                title: title,
-                author: firstName + ' ' + lastName,
-                description: description,
-                contentUrl: contentUrl,
-                imageUrl: imgUrl,
-                genre: genre,
-                price: price.length === 0 ? 0 : price
-            }
+      if (!title || !pdfFile || !firstName || !lastName || !genre) {
+        showNotification(
+          "Please fill out all required fields (Title, PDF, Author, Genre, Description).",
+          'error',
+          3000
+        )
+        return
+      }
 
-            const response = await publishBook(request, jwt)
-            if (response.statusCode === 0) {
-                alert('Publish book success')
-                formRef.current.reset()
-                clearImg()
-                setTitleCount(0)
-                setDescriptionCount(0)
-            }
-        } catch (err) {
-            console.log('Error publish', err)
-        } finally {
-            setUpdateWorks(false)
-            setPbLoading(false)
+      // Check the file
+      if (pdfFile.size > MAX_FILE_SIZE) {
+        showNotification("File size exceeds 50MB limit!", "error", 3000)
+        return
+      }
+      if (pdfFile.type !== 'application/pdf') {
+        showNotification("Invalid file type! Only PDF is allowed.", "error", 3000)
+        return
+      }
+
+      try {
+        setPbLoading(true)
+        setUpdateWorks(true)
+
+        const meta = {
+          title,
+          author: `${firstName} ${lastName}`.trim(),
+          description,
+          genre,
+          price: price === '' ? 0 : Number(price)
         }
+
+        const response = await publishBook(meta, pdfFile, imgFile, jwt)
+
+        if (response.statusCode === 0) {
+          showNotification("Publish book success", "success", 3000)
+          formRef.current.reset()
+          clearImg()
+          setPdfFile(null)
+          setTitleCount(0)
+          setDescriptionCount(0)
+        }
+      } catch (err) {
+        const uploadMessage =
+          err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          err?.message ||
+          "Failed to publish book"
+
+        showNotification(uploadMessage, 'error', 3000)
+      } finally {
+        setUpdateWorks(false)
+        setPbLoading(false)
+      }
     }
 
     useEffect(() => {
@@ -271,14 +305,6 @@ export default function WorkPage({ type }) {
                                 </div>
                             </div>
                             <div className={clx('input-area')}>
-                                <label className={clx('input-title')}>Public URL to your content:</label>
-                                <div className={clx('file-input-box', 'long')}>
-                                    <input className={clx('url-box')} id='file-box_asd2' type='text' required
-                                        onChange={(e) => setContentUrl(e.target.value)}
-                                        placeholder='For example: https://mydomain/file.pdf' />
-                                </div>
-                            </div>
-                            <div className={clx('input-area')}>
                                 <label className={clx('input-title')}>Author:</label>
                                 <div className={clx('name-input-area')}>
                                     <div className={clx('input-box', 'medium')}>
@@ -307,6 +333,7 @@ export default function WorkPage({ type }) {
                                     </div>
                                 </div>
                             </div>
+
                             <div className={clx('input-area')}>
                                 <label className={clx('input-title')}>Description:</label>
                                 <div className={clx('multiline-box', 'long')}>
@@ -316,9 +343,30 @@ export default function WorkPage({ type }) {
                                     <label className={clx('textarea-counter', { 'red': titleCount > 300 })} htmlFor="textarea_314asd">{`${descriptionCount}/300`}</label>
                                 </div>
                             </div>
-                            <button className={clx('publish-btn')} type='button' onClick={handlePublish}>
+
+                            <div className={clx('input-area')}>
+                                <label className={clx('input-title')} for="pdf-input">Book Content (PDF):</label>
+
+                                <div className={clx('file-input-box', 'long')} onClick={handlePdfChoose} style={{ cursor: 'pointer' }}>
+                                    <input
+                                        id="pdf-input"
+                                        ref={pdfInputRef}
+                                        className={clx('hidden')}
+                                        type="file"
+                                        accept="application/pdf"
+                                        onChange={handlePdfFileChange}
+                                    />
+                                    <FontAwesomeIcon className={clx('clip-icon')} icon={faPaperclip} />
+                                    <span className={clx('url-box')}>
+                                        {pdfFile ? pdfFile.name : 'Click to select a PDF file...'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <button data-testid="publish-btn" className={clx('publish-btn')} type='button' onClick={handlePublish}>
                                 Publish
                             </button>
+
                             <div className={clx('loader-container')}>
                                 <Loader type='spinner' isLoading={pbloading} />
                             </div>

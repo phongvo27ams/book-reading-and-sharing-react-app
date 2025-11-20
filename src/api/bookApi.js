@@ -1,9 +1,31 @@
 import baseApi, { createApiWithToken } from "./apiConfig";
 
-export const publishBook = async (requestData, token) => {
-    const api = createApiWithToken(token)
-    const response = await api.post("/books/publish", requestData)
-    return response.data
+export const publishBook = async (meta, pdfFile, coverFile, token) => {
+    const api = createApiWithToken(token);
+    const formData = new FormData();
+
+    // meta dưới dạng application/json (Blob)
+    const metaBlob = new Blob([JSON.stringify(meta)], { type: 'application/json' });
+    formData.append('meta', metaBlob);
+
+    // pdf bắt buộc
+    formData.append('pdf', pdfFile);
+
+    // cover tùy chọn
+    if (coverFile) {
+        formData.append('cover', coverFile);
+    }
+
+    // Override header để không bị 'application/json'
+    const response = await api.post("/books/upload", formData, {
+        headers: {
+            // Không set boundary thủ công, để trình duyệt tự thêm
+            'Content-Type': 'multipart/form-data'
+        },
+        // Phòng khi axios có transformRequest stringify dữ liệu
+        transformRequest: [(data) => data],
+    });
+    return response.data;
 }
 
 export const getBookById = async (bookId) => {
