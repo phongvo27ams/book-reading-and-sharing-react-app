@@ -30,6 +30,7 @@ function BookDetailPage() {
     const [paymentMethod, setPaymentMethod] = useState(1)
     const [emojiOpen, setEmojiOpen] = useState(false)
     const [comment, setComment] = useState('')
+    const [error, setError] = useState('')
     const [ratings, setRatings] = useState(null)
     const [isFavorite, setIsFavorite] = useState(false)
     const [ratingsCount, setRatingsCount] = useState(0)
@@ -72,6 +73,16 @@ function BookDetailPage() {
             console.log("Error fetching my rating")
         }
     }
+    
+    const handleChange = (e) => {
+        const value = e.target.value;
+        if (value.length > 100) {
+            setError('Comment must be at most 100 characters');
+        } else {
+            setError('');
+            setComment(value);
+        }
+    };
 
     const handleRating = (value) => {
         setRate(value)
@@ -445,7 +456,9 @@ function BookDetailPage() {
                         </div>
                         <div className={clx('sub-info-container')}>
                             <FontAwesomeIcon className={clx('ratings-icon', 'orange')} icon={faClipboardList} />
-                            <h3 className={clx('orange')}>{ratingsCount + " ratings"}</h3>
+                            <h3 className={clx('orange')}>
+                                {ratingsCount} {ratingsCount === 1 ? 'rating' : 'ratings'}
+                            </h3>
                         </div>
                         <div className={clx({ 'add-to-fav-btn': true, 'clicked': clicked })}
                             onClick={handleFavoriteClick}>
@@ -598,6 +611,7 @@ function BookDetailPage() {
                     </div>
                 </div>
             </div>
+
             {authenticated && <div className={clx('comment-area')}>
                 {!myRating ? (
                     <div className={clx('user-comment')}>
@@ -608,7 +622,7 @@ function BookDetailPage() {
                         <div className={clx('comment-box')}>
                             <div className={clx('first-section')}>
                                 <div className={clx('cmt-avatar')}>
-                                    <img src={userInfo.avatarUrl} />
+                                    <img src={userInfo.avatarUrl ? userInfo.avatarUrl : 'https://res.cloudinary.com/ddlpbdgv5/image/upload/v1763005620/328283141_e3fbbe1c-cb27-4c6a-8416-eeb4640dd148_ha532y.jpg'} /> :
                                 </div>
                                 <div className={clx('emoji')} onClick={handleEmojiMenuClick}>
                                     <FontAwesomeIcon icon={faFaceSmile} />
@@ -617,9 +631,13 @@ function BookDetailPage() {
                             <div className={clx('input-section')}>
                                 <textarea placeholder='Leave your comment here...' rows='5' cols='95'
                                     value={comment}
-                                    onChange={(e) => setComment(e.target.value)} />
+                                    onChange={handleChange}
+                                />
                             </div>
                             <div className={clx('btn-section')}>
+                                <div>
+                                    {comment.length}/100 characters
+                                </div>
                                 <div className={clx('submit-btn')} onClick={rateBook}>Submit</div>
                                 <div className={clx('rloader-container')}>
                                     <Loader isLoading={ratingLoading} type='spinner' />
@@ -627,11 +645,28 @@ function BookDetailPage() {
                             </div>
                         </div>
                         <div className={clx('emoji-container')}>
-                            <EmojiPicker emojiStyle='facebook'
-                                theme='dark'
-                                lazyLoadEmojis
-                                open={emojiOpen}
-                                onEmojiClick={(obj) => setComment(prev => prev + obj.emoji)} />
+                          <EmojiPicker
+                              emojiStyle='facebook'
+                              theme='dark'
+                              lazyLoadEmojis
+                              open={emojiOpen}
+                              onEmojiClick={(obj) => {
+                                  setComment(prev => {
+                                      const newValue = prev + obj.emoji;
+
+                                      if (newValue.length > 100) {
+                                          setError('Comment must be at most 100 characters');
+                                          return prev;
+                                      }
+
+                                      setError('');
+                                      return newValue;
+                                  });
+                              }}
+                          />
+                        </div>
+                        <div className={clx('error-message')}>
+                            {error && <span style={{ color: 'red' }}>{error}</span>}
                         </div>
                     </div>
                 ) : (
@@ -647,7 +682,7 @@ function BookDetailPage() {
                             updateInteractions={updateInteractions} />
                     )) : (<div></div>)}
                     { myRating ?
-                        (ratings.length > 5 &&
+                        (ratings && ratings.length > 5 &&
                         <div className={clx('pagination-controls')}>
                             <div className={clx('see-more')} onClick={() => setRatingDisplayNum(prev => prev + 5)}>
                                 <label>See more</label>
