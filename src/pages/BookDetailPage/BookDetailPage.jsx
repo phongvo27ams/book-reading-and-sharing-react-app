@@ -88,6 +88,13 @@ function BookDetailPage() {
         setRate(value)
     }
 
+    const handleSubmit = () => {
+        // Block submit when invalid
+        if (!jwt) return
+        if (comment.length > 100 || error) return
+        rateBook()
+    }
+
     const rateBook = async () => {
         if (!jwt) return
         try {
@@ -200,6 +207,11 @@ function BookDetailPage() {
 
     const purchaseByWallet = async () => {
         if (!jwt) return
+        // Prevent submission if comment exceeds allowed length or validation error present
+        if (comment.length > 100 || error) {
+            return
+        }
+
         try {
             setWalletLoading(true)
             const response = await payUsingFoxBudget(jwt, bookData.bookId)
@@ -624,12 +636,15 @@ function BookDetailPage() {
                                 <div className={clx('cmt-avatar')}>
                                     <img src={userInfo.avatarUrl ? userInfo.avatarUrl : 'https://res.cloudinary.com/ddlpbdgv5/image/upload/v1763005620/328283141_e3fbbe1c-cb27-4c6a-8416-eeb4640dd148_ha532y.jpg'} /> :
                                 </div>
-                                <div className={clx('emoji')} onClick={handleEmojiMenuClick}>
+                                <div className={clx('emoji')} onClick={handleEmojiMenuClick} data-testid="emoji-toggle" aria-label="emoji toggle">
                                     <FontAwesomeIcon icon={faFaceSmile} />
                                 </div>
                             </div>
                             <div className={clx('input-section')}>
-                                <textarea placeholder='Leave your comment here...' rows='5' cols='95'
+                                <textarea
+                                    placeholder="Leave your comment here..."
+                                    rows={5}
+                                    cols={95}
                                     value={comment}
                                     onChange={handleChange}
                                 />
@@ -638,7 +653,7 @@ function BookDetailPage() {
                                 <div>
                                     {comment.length}/100 characters
                                 </div>
-                                <div className={clx('submit-btn')} onClick={rateBook}>Submit</div>
+                                <div className={clx('submit-btn')} data-testid="submit-rating" onClick={handleSubmit}>Submit</div>
                                 <div className={clx('rloader-container')}>
                                     <Loader isLoading={ratingLoading} type='spinner' />
                                 </div>
