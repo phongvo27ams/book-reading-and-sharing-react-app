@@ -31,9 +31,13 @@ vi.mock('../../../api/ratingApi', () => ({
   counting: vi.fn().mockResolvedValue({ data: 0 }),
   getBookRatings: vi.fn().mockResolvedValue({ data: { content: [] } }),
   getMyRating: vi.fn().mockResolvedValue({ data: null }),
+  rateThisBook: vi.fn().mockResolvedValue({ statusCode: 0 }),
 }))
 vi.mock('../../../api/purchaseApi', () => ({
   getPurchasedBookIds: vi.fn().mockResolvedValue({ data: [] }),
+}))
+vi.mock('emoji-picker-react', () => ({
+  default: ({ open }) => (open ? <div data-testid="emoji-picker">emoji-picker</div> : null),
 }))
 vi.mock('../../../components/Notification/NotificationContainer')
 vi.mock('../../../provider/BookContext')
@@ -141,5 +145,112 @@ describe('BookDetailPage Favorite Feature', () => {
         3000
       )
     )
+  })
+})
+
+describe('BookDetailPage Rating & Comment', () => {
+  const mockBookData = {
+    bookId: 1,
+    title: 'Test Book',
+    author: 'Author',
+    price: 0,
+    imageUrl: 'img.png',
+    description: 'desc',
+    genre: 'fiction',
+    averageRating: 4.5,
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useNotification.mockReturnValue({ showNotification: vi.fn() })
+    useAuth.mockReturnValue({
+      authenticated: true,
+      jwt: 'fake-jwt',
+      userInfo: { username: 'testuser', avatarUrl: 'ava.png', fname: 'Test', lname: 'User' },
+      setUserInfo: vi.fn(),
+    })
+    useBook.mockReturnValue({
+      bookData: mockBookData,
+      bookLoading: false,
+      setId: vi.fn(),
+      setUpdateFavorites: vi.fn(),
+    })
+  })
+
+  it('SHOULD show error when comment exceeds 100 characters', async () => {
+    render(<BookDetailPage />)
+    const user = userEvent.setup()
+
+    const textarea = await screen.findByPlaceholderText(/leave your comment here/i)
+    const longText = 'a'.repeat(101)
+    await user.type(textarea, longText)
+
+    expect(screen.getByText(/comment must be at most 100 characters/i)).toBeInTheDocument()
+
+    const submit = screen.getByText(/submit/i)
+    await user.click(submit)
+
+    const { rateThisBook } = await import('../../../api/ratingApi')
+    expect(rateThisBook).not.toHaveBeenCalled()
+  })
+
+  it('SHOULD submit rating with valid data', async () => {
+    const { rateThisBook } = await import('../../../api/ratingApi')
+    render(<BookDetailPage />)
+    const user = userEvent.setup()
+
+    const textarea = await screen.findByPlaceholderText(/leave your comment here/i)
+    await user.type(textarea, 'Nice book')
+
+    const submit = screen.getByText(/submit/i)
+    await user.click(submit)
+
+    await waitFor(() => {
+      expect(rateThisBook).toHaveBeenCalledWith('fake-jwt', {
+        ratedBookId: 1,
+        rate: 0,
+        comment: 'Nice book',
+      })
+    })
+  })
+})
+
+describe('BookDetailPage Emoji Toggle', () => {
+  const mockBookData = {
+    bookId: 1,
+    title: 'Test Book',
+    author: 'Author',
+    price: 0,
+    imageUrl: 'img.png',
+    description: 'desc',
+    genre: 'fiction',
+    averageRating: 4.5,
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useNotification.mockReturnValue({ showNotification: vi.fn() })
+    useAuth.mockReturnValue({
+      authenticated: true,
+      jwt: 'fake-jwt',
+      userInfo: { username: 'testuser', avatarUrl: 'ava.png', fname: 'Test', lname: 'User' },
+      setUserInfo: vi.fn(),
+    })
+    useBook.mockReturnValue({
+      bookData: mockBookData,
+      bookLoading: false,
+      setId: vi.fn(),
+      setUpdateFavorites: vi.fn(),
+    })
+  })
+
+  it('SHOULD toggle emoji picker open/close', async () => {
+    render(<BookDetailPage />)
+    const user = userEvent.setup()
+    const toggle = screen.getByTestId('emoji-toggle')
+    await user.click(toggle)
+    expect(screen.queryByTestId('emoji-picker')).toBeInTheDocument()
+    await user.click(toggle)
+    expect(screen.queryByTestId('emoji-picker')).not.toBeInTheDocument()
   })
 })
