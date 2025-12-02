@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../provider/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -10,6 +10,7 @@ import logo from '../../assets/fox.png';
 import FloatingHintTextBox from '../../components/FloatingHintTextBox/FloatingHintTextBox.';
 import PasswordReqList from '../../components/PasswordReqList/PasswordReqList';
 import Loader from '../../components/Loader/Loader';
+import ReCAPTCHA from 'react-google-recaptcha'
 import { Messages } from '../../components/FoxCharacter/FoxCharacter';
 
 const clx = classNames.bind(style);
@@ -18,6 +19,9 @@ function SigninPage() {
   const { userRegister, loading, setMessage } = useAuth();
   const navigate = useNavigate();
 
+  const recaptchaRef = useRef(null)
+  const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''
+  const [captchaToken, setCaptchaToken] = useState(null)
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [fName, setFName] = useState('');
@@ -101,36 +105,65 @@ function SigninPage() {
       return;
     }
 
-    const info = {
-      username: username.trim(),
-      email: email.trim(),
-      password,
-      fName: fName.trim(),
-      lName: lName.trim(),
-      balance: 0,
+    // For reCAPTCHA v2 (tickbox), require the client-side token from onChange
+    if (siteKey && !captchaToken) {
+      setErrorMessage('Please complete the captcha to verify you are not a robot.')
+      return
     }
 
-    const result = await userRegister(info);
-    const success = typeof result === "boolean" ? result : result?.success;
+    try {
+      const info = {
+        username: username.trim(),
+        email: email.trim(),
+        password,
+        fName: fName.trim(),
+        lName: lName.trim(),
+        balance: 0,
+        captchaToken,
+      }
 
-    if (success) {
-      resetAllFields();
-      navigate('/auth/login');
-      return;
-    }
+      // Debug: print registration payload
+      // try {
+      //   if (import.meta.env.MODE !== 'production') {
+      //     const debugInfo = { ...info, password: '***MASKED***' }
+      //     console.log('Register payload:', debugInfo)
+      //   }
+      // } catch (e) {
+      //   // Ignore logging errors
+      // }
 
-    const { errorCode, errorMessage } = typeof result === "object" && result !== null ? result : {};
+      const result = await userRegister(info);
+      const success = typeof result === "boolean" ? result : result?.success;
 
-    switch (errorCode) {
-      case "USERNAME_EXIST":
-        setErrorMessage("That username is already in use. Please choose another one.");
-        break;
-      case "EMAIL_EXIST":
-        setErrorMessage("That email is already associated with an account. Use a different email.");
-        break;
-      default:
-        setErrorMessage(errorMessage || "Registration failed. Please try again.");
-        break;
+      if (success) {
+        resetAllFields();
+        navigate('/auth/login');
+        return;
+      }
+
+      const { errorCode, errorMessage } = typeof result === "object" && result !== null ? result : {};
+
+      switch (errorCode) {
+        case "USERNAME_EXIST":
+          setErrorMessage("That username is already in use. Please choose another one.");
+          break;
+        case "EMAIL_EXIST":
+          setErrorMessage("That email is already associated with an account. Use a different email.");
+          break;
+        default:
+          setErrorMessage(errorMessage || "Registration failed. Please try again.");
+          break;
+      }
+    } catch (err) {
+      setErrorMessage('Registration failed. Please try again.')
+    } finally {
+      try {
+        if (recaptchaRef && recaptchaRef.current) recaptchaRef.current.reset()
+      } catch (e) {
+        // Ignore reset errors
+      }
+      // Clear local captcha token so user must re-validate next time
+      setCaptchaToken(null)
     }
   }
 
@@ -215,13 +248,24 @@ function SigninPage() {
               <label>Go back to previous step</label>
             </div>
 
-            <button type="button" className={clx('signup-btn')} onClick={handleRegister}>
+            <button type="button" className={clx('signup-btn')} onClick={handleRegister} disabled={loading}>
               Join the Foxes
             </button>
 
             <div className={clx('loader-container')}>
               <Loader type="spinner" isLoading={loading} />
             </div>
+            
+            {siteKey && (
+              <div className={clx('captcha-wrapper')}>
+                <ReCAPTCHA
+                  ref={recaptchaRef}
+                  sitekey={siteKey}
+                  onChange={(token) => setCaptchaToken(token)}
+                  onExpired={() => setCaptchaToken(null)}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
