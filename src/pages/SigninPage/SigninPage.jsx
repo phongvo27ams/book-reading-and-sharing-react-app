@@ -12,6 +12,7 @@ import PasswordReqList from '../../components/PasswordReqList/PasswordReqList';
 import Loader from '../../components/Loader/Loader';
 import ReCAPTCHA from 'react-google-recaptcha'
 import { Messages } from '../../components/FoxCharacter/FoxCharacter';
+import { Toaster, toast } from 'react-hot-toast';
 
 const clx = classNames.bind(style);
 
@@ -29,13 +30,11 @@ function SigninPage() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [next, setNext] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
 
   const [validPassword, setValidPassword] = useState(false);
 
   useEffect(() => {
     setMessage(Messages.SIGNUP)
-    setErrorMessage('')
   }, []);
 
   // Validation functions
@@ -46,37 +45,36 @@ function SigninPage() {
   const handleSetNext = () => {
     if (!username.trim() || !email.trim() || !fName.trim() || !lName.trim()) {
       setMessage(Messages.BLANK);
-      setErrorMessage('Please fill in all fields.');
+      toast.error('Please fill in all fields.')
       return;
     }
 
     if (!isValidUsername(username.trim())) {
       setMessage(Messages.BLANK);
-      setErrorMessage('Username must be 6-32 characters: letters, numbers, or underscores only.');
+      toast.error('Username must be 6-32 characters: letters, numbers, or underscores only.')
       return;
     }
 
     if (email.trim().length < 6 || email.trim().length > 32) {
       setMessage(Messages.INVALID_EMAIL);
-      setErrorMessage('Email must be 6-32 characters long.');
+      toast.error('Email must be 6-32 characters long.')
       return;
     }
 
     if (!isValidEmail(email.trim())) {
       setMessage(Messages.INVALID_EMAIL);
-      setErrorMessage('Please enter a valid email address.');
+      toast.error('Please enter a valid email address.')
       return;
     }
 
     if (!isValidName(fName.trim()) || !isValidName(lName.trim())) {
       setMessage(Messages.BLANK);
-      setErrorMessage('First name and Last name must be valid.');
+      toast.error('First name and Last name must be valid.')
       return;
     }
 
     setNext(true);
     setMessage(Messages.PASSWORD);
-    setErrorMessage('');
   }
 
   const resetAllFields = () => {
@@ -87,7 +85,6 @@ function SigninPage() {
     setPassword('');
     setConfirm('');
     setNext(false);
-    setErrorMessage('');
     setValidPassword(false);
   }
 
@@ -95,19 +92,19 @@ function SigninPage() {
     // Step 2 validation
     if (password.trim().length < 6 || password.trim().length > 32) {
       setMessage(Messages.INVALID_PASSWORD);
-      setErrorMessage('Password must be 6-32 characters long.');
+      toast.error('Password must be 6-32 characters long.')
       return;
     }
 
     if (!validPassword || password !== confirm) {
       setMessage(Messages.INVALID_PASSWORD);
-      setErrorMessage('Password is invalid or does not match confirmation.');
+      toast.error('Password is invalid or does not match confirmation.')
       return;
     }
 
     // For reCAPTCHA v2 (tickbox), require the client-side token from onChange
     if (siteKey && !captchaToken) {
-      setErrorMessage('Please complete the captcha to verify you are not a robot.')
+      toast.error('Please complete the captcha to verify you are not a robot.')
       return
     }
 
@@ -145,17 +142,18 @@ function SigninPage() {
 
       switch (errorCode) {
         case "USERNAME_EXIST":
-          setErrorMessage("That username is already in use. Please choose another one.");
+          toast.error("That username is already in use. Please choose another one.");
           break;
         case "EMAIL_EXIST":
-          setErrorMessage("That email is already associated with an account. Use a different email.");
+          toast.error("That email is already associated with an account. Use a different email.");
           break;
         default:
-          setErrorMessage(errorMessage || "Registration failed. Please try again.");
+          toast.error(errorMessage || "Registration failed. Please try again.");
           break;
       }
+      toast.error(errorMessage)
     } catch (err) {
-      setErrorMessage('Registration failed. Please try again.')
+      toast.error('Registration failed. Please try again.')
     } finally {
       try {
         if (recaptchaRef && recaptchaRef.current) recaptchaRef.current.reset()
@@ -169,6 +167,7 @@ function SigninPage() {
 
   return (
     <form className={clx('signin-container')}>
+      <Toaster position="top-right" reverseOrder={false} />
       <img className={clx('logo')} src={logo} alt="Logo" />
       <label className={clx('title')}>SIGN UP</label>
 
@@ -181,7 +180,6 @@ function SigninPage() {
               value={username}
               onChange={e => {
                 setUsername(e.target.value);
-                setErrorMessage('');
               }}
             />
             <FloatingHintTextBox
@@ -189,7 +187,6 @@ function SigninPage() {
               value={email}
               onChange={e => {
                 setEmail(e.target.value);
-                setErrorMessage('');
               }}
             />
             <FloatingHintTextBox
@@ -197,7 +194,6 @@ function SigninPage() {
               value={fName}
               onChange={e => {
                 setFName(e.target.value);
-                setErrorMessage('');
               }}
             />
             <FloatingHintTextBox
@@ -205,12 +201,8 @@ function SigninPage() {
               value={lName}
               onChange={e => {
                 setLName(e.target.value);
-                setErrorMessage('');
               }}
             />
-
-            {errorMessage && <div className={clx('error-message')}><span>{errorMessage}</span></div>}
-
             <div className={clx('next-btn')} onClick={handleSetNext}>
               <label>Go to next step</label>
               <FontAwesomeIcon icon={faArrowRight} />
@@ -226,7 +218,6 @@ function SigninPage() {
               type="password"
               onChange={e => {
                 setPassword(e.target.value);
-                setErrorMessage('');
               }}
             />
             <FloatingHintTextBox
@@ -236,14 +227,11 @@ function SigninPage() {
               type="password"
               onChange={e => {
                 setConfirm(e.target.value);
-                setErrorMessage('');
               }}
             />
             <PasswordReqList password={password} confirm={confirm} onValidityChange={setValidPassword} />
 
-            {errorMessage && <div className={clx('error-message')}><span>{errorMessage}</span></div>}
-
-            <div className={clx('next-btn')} onClick={() => { setNext(false); setMessage(Messages.SIGNUP); setErrorMessage('') }}>
+            <div className={clx('next-btn')} onClick={() => { setNext(false); setMessage(Messages.SIGNUP);}}>
               <FontAwesomeIcon icon={faArrowLeft} />
               <label>Go back to previous step</label>
             </div>

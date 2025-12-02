@@ -81,6 +81,10 @@
     transform: translateX(-53%);
 }
 
+.hidden {
+    display: none;
+}
+
 .step-container {
     height: fit-content;
     padding-top: 20px;
@@ -128,7 +132,6 @@
 .error-message {
     color: #ff6b6b;
     font-size: 1.8rem;
-    margin-top: 8px;
     text-align: center;
-    width: 100%;
+    width: 80%;
 }
