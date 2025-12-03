@@ -85,10 +85,21 @@ export default function WorkPage({ type }) {
 
     const handleImgFileChange = (e) => {
         const file = e.target.files[0];
+        if (!file) return
         setImgFile(file)
 
-        const objectUrl = URL.createObjectURL(file);
-        setPreviewUrl(objectUrl);
+        if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+            try {
+                const objectUrl = URL.createObjectURL(file);
+                setPreviewUrl(objectUrl);
+            } catch (err) {
+                // ignore preview in test or unsupported env
+                setPreviewUrl(null)
+            }
+        } else {
+            // environment (like JSDOM) may not implement createObjectURL
+            setPreviewUrl(null)
+        }
     }
 
     const handlePdfFileChange = (e) => {
@@ -97,7 +108,13 @@ export default function WorkPage({ type }) {
     }
 
     const clearImg = () => {
-        if (previewUrl) URL.revokeObjectURL(previewUrl)
+        if (previewUrl && typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+            try {
+                URL.revokeObjectURL(previewUrl)
+            } catch (err) {
+                // ignore
+            }
+        }
         setImgFile(null)
         setPreviewUrl(null)
     }
@@ -115,6 +132,16 @@ export default function WorkPage({ type }) {
         )
         return
       }
+
+            // Title/description length validations
+            if (title.length > 80) {
+                showNotification("Title must not exceed 80 characters.", "error", 3000)
+                return
+            }
+            if (description.length > 300) {
+                showNotification("Description must not exceed 300 characters.", "error", 3000)
+                return
+            }
 
       // Check the file
       if (pdfFile.size > MAX_FILE_SIZE) {
@@ -137,6 +164,15 @@ export default function WorkPage({ type }) {
           genre,
           price: price === '' ? 0 : Number(price)
         }
+
+                // Validate image file type if provided
+                if (imgFile) {
+                    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png']
+                    if (!allowedImageTypes.includes(imgFile.type)) {
+                        showNotification("Invalid image format! Allowed types: JPG, JPEG, PNG.", "error", 3000)
+                        return
+                    }
+                }
 
         const response = await publishBook(meta, pdfFile, imgFile, jwt)
 
@@ -340,12 +376,12 @@ export default function WorkPage({ type }) {
                                     <textarea required id='textarea_314asd' rows='4' cols='100'
                                         placeholder='Write a short description about your book...'
                                         onChange={(e) => setDescription(e.target.value)} />
-                                    <label className={clx('textarea-counter', { 'red': titleCount > 300 })} htmlFor="textarea_314asd">{`${descriptionCount}/300`}</label>
+                                    <label className={clx('textarea-counter', { 'red': descriptionCount > 300 })} htmlFor="textarea_314asd">{`${descriptionCount}/300`}</label>
                                 </div>
                             </div>
 
                             <div className={clx('input-area')}>
-                                <label className={clx('input-title')} for="pdf-input">Book Content (PDF):</label>
+                                <label className={clx('input-title')} htmlFor="pdf-input">Book Content (PDF):</label>
 
                                 <div className={clx('file-input-box', 'long')} onClick={handlePdfChoose} style={{ cursor: 'pointer' }}>
                                     <input

@@ -65,5 +65,5 @@ npx vitest run src/pages/LoginPage/__tests__/LoginPage.test.jsx --coverage
 To run the entire unit tests with coverage report:
 
 ```
-npm run test
+npx vitest run --coverage
 ```

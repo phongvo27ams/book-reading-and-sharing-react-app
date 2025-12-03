@@ -3,20 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../provider/AuthContext';
 
 const LoginGuard = ({ children }) => {
-    const { authenticated, jwt, loading } = useAuth();
+    const { authenticated, jwt, isInitializing } = useAuth();
     const navigate = useNavigate();
     const [hasRedirected, setHasRedirected] = useState(false);
 
     useEffect(() => {
-        if (loading) return;
+        if (isInitializing) return;
         if (authenticated && jwt && !hasRedirected) {
             setHasRedirected(true);
             navigate('/', { replace: true });
         }
-    }, [authenticated, jwt, loading, navigate, hasRedirected]);
+    }, [authenticated, jwt, isInitializing, navigate, hasRedirected]);
 
 
-    if (loading) {
+    if (isInitializing) {
         return (
             <div style={{
                 display: 'flex',

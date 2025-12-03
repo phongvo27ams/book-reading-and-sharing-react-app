@@ -9,6 +9,8 @@ import classNames from 'classnames/bind'
 import UserPopup from '../UserPopup/UserPopup'
 import { useAuth } from '../../provider/AuthContext'
 
+const DEFAULT_AVATAR = 'https://images2.imgbox.com/25/a1/GuHDKXVs_o.jpg'
+
 const clx = classNames.bind(style)
 
 function NavBar() {
@@ -59,23 +61,40 @@ function NavBar() {
                 <ul className={clx('nav-list')}>
                     <li className={clx('item')}><Link to='/' className={clx('link')}>Home</Link></li>
                     <li className={clx('item')}><Link to='/explore' className={clx('link')}>Explore</Link></li>
-                    <li className={clx('item')}><Link to={userInfo ? '/dashboard' : 'auth/login'} className={clx('link')}>Dashboard</Link></li>
+                    <li className={clx('item')}>
+                        <Link to={userInfo ? '/dashboard' : '/auth/login'} className={clx('link')}>Dashboard</Link>
+                    </li>
                 </ul>
             </div>
             <div className={clx('auth-area')} ref={userPopupRef}>
                 {authenticated ? (
-                    <Fragment>
-                        <div className={clx('avatar')}>
-                            <img src={userInfo.avatarUrl} />
-                        </div>
-                        <div className={clx('expand-btn')} onClick={handlePopupClick}>
-                            <FontAwesomeIcon
-                                className={clx('spin-icon', { up: popupState })}
-                                icon={faCaretDown}
-                            />
-                        </div>
-                        <UserPopup state={popupState} />
-                    </Fragment>
+                    userInfo ? (
+                        <Fragment>
+                            <div className={clx('avatar')}>
+                                <img src={userInfo.avatarUrl || DEFAULT_AVATAR} alt="avatar" />
+                            </div>
+                            <div className={clx('expand-btn')} onClick={handlePopupClick}>
+                                <FontAwesomeIcon
+                                    className={clx('spin-icon', { up: popupState })}
+                                    icon={faCaretDown}
+                                />
+                            </div>
+                            <UserPopup state={popupState} />
+                        </Fragment>
+                    ) : (
+                        // Authenticated but userInfo not yet available — render default avatar
+                        <Fragment>
+                            <div className={clx('avatar')}>
+                                <img src={DEFAULT_AVATAR} alt="default avatar" />
+                            </div>
+                            <div className={clx('expand-btn')}>
+                                <FontAwesomeIcon
+                                    className={clx('spin-icon')}
+                                    icon={faCaretDown}
+                                />
+                            </div>
+                        </Fragment>
+                    )
                 ) : (
                     <Fragment>
                         <Link className={clx('home-login-btn')} to='/auth/login'>Log in</Link>

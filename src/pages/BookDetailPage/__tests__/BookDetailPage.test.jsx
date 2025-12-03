@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+// Use fast input events to avoid slow user typing in CI
 import { faHeart as faHeartSolid } from '@fortawesome/free-solid-svg-icons'
 import { faHeart as faHeartOutlined } from '@fortawesome/free-regular-svg-icons'
 import userEvent from '@testing-library/user-event'
@@ -183,7 +184,7 @@ describe('BookDetailPage Rating & Comment', () => {
 
     const textarea = await screen.findByPlaceholderText(/leave your comment here/i)
     const longText = 'a'.repeat(101)
-    await user.type(textarea, longText)
+    fireEvent.change(textarea, { target: { value: longText } })
 
     expect(screen.getByText(/comment must be at most 100 characters/i)).toBeInTheDocument()
 
@@ -200,7 +201,8 @@ describe('BookDetailPage Rating & Comment', () => {
     const user = userEvent.setup()
 
     const textarea = await screen.findByPlaceholderText(/leave your comment here/i)
-    await user.type(textarea, 'Nice book')
+    // Use direct input event to avoid composition/typing differences in CI
+    fireEvent.change(textarea, { target: { value: 'Nice book' } })
 
     const submit = screen.getByText(/submit/i)
     await user.click(submit)

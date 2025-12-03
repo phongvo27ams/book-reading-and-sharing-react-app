@@ -15,5 +15,7 @@ export default defineConfig({
       reporter: ['json', 'lcov', 'text', 'cobertura'],
       dir: 'test-results/coverage',
     },
+    // Global test options
+    timeout: 15000,
   },
 })

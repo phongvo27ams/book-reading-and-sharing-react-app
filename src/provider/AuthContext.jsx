@@ -10,7 +10,10 @@ export default function AuthProvider({ children }) {
   const [userInfo, setUserInfo] = useState(null);
   const [jwt, setJwt] = useState(() => localStorage.getItem('jwt'));
   const [message, setMessage] = useState(Messages.LOGIN);
-  const [loading, setLoading] = useState(true); // Start with loading state
+  // `isInitializing` tracks the initial auth/token check on app startup.
+  // `loading` is reserved for user-initiated operations (login/register/logout).
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
 
   const navigate = useNavigate();
@@ -29,7 +32,7 @@ export default function AuthProvider({ children }) {
     const initializeAuth = async () => {
       if (!jwt) {
         setAuthenticated(false);
-        setLoading(false);
+        setIsInitializing(false);
         return;
       }
 
@@ -41,7 +44,7 @@ export default function AuthProvider({ children }) {
         console.error("Failed to fetch user info", error);
         await logout(false);
       } finally {
-        setLoading(false);
+        setIsInitializing(false);
       }
     };
 
@@ -151,6 +154,7 @@ export default function AuthProvider({ children }) {
         userRegister,
         login,
         logout,
+        isInitializing,
         loading,
         message,
         setMessage,

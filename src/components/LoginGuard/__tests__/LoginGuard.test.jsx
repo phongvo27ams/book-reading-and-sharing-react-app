@@ -32,7 +32,7 @@ describe('LoginGuard', () => {
     useAuth.mockReturnValue({
       authenticated: false,
       jwt: null,
-      loading: true,
+      isInitializing: true,
     })
 
     render(
@@ -50,7 +50,7 @@ describe('LoginGuard', () => {
     useAuth.mockReturnValue({
       authenticated: true,
       jwt: 'fake-jwt',
-      loading: false,
+      isInitializing: false,
     })
 
     render(
@@ -70,7 +70,7 @@ describe('LoginGuard', () => {
     useAuth.mockReturnValue({
       authenticated: false,
       jwt: null,
-      loading: false,
+      isInitializing: false,
     })
 
     render(

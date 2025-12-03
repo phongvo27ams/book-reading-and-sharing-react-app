@@ -6,6 +6,24 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import SigninPage from "../SigninPage";
 import { Messages } from "../../../components/FoxCharacter/FoxCharacter";
 
+// JSDOM (used by Vitest) doesn't implement window.matchMedia. Some
+// components or polyfills call it; mock a simple implementation so
+// tests that expect no-ops run without error.
+beforeAll(() => {
+  if (typeof window.matchMedia !== 'function') {
+    window.matchMedia = vi.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(), // deprecated but sometimes used
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+  }
+});
+
 // Mock navigate
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async () => {
@@ -37,6 +55,22 @@ vi.mock("../../../components/FloatingHintTextBox/FloatingHintTextBox.", () => {
         {...props}
       />
     ),
+  };
+});
+
+// Mock react-google-recaptcha so tests don't try to load external
+// script. This mock will call `onChange` once on mount to supply
+// a token so `handleRegister` sees a captcha token and proceeds.
+vi.mock('react-google-recaptcha', () => {
+  return {
+    default: (props) => {
+      useEffect(() => {
+        if (props && typeof props.onChange === 'function') {
+          props.onChange('TEST_RECAPTCHA_TOKEN');
+        }
+      }, []);
+      return <div data-testid="recaptcha-mock" />;
+    },
   };
 });
 

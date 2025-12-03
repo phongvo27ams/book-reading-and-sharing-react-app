@@ -88,7 +88,8 @@ function SigninPage() {
     setValidPassword(false);
   }
 
-  const handleRegister = async () => {
+  const handleRegister = async (e) => {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
     // Step 2 validation
     if (password.trim().length < 6 || password.trim().length > 32) {
       setMessage(Messages.INVALID_PASSWORD);
@@ -151,7 +152,7 @@ function SigninPage() {
           toast.error(errorMessage || "Registration failed. Please try again.");
           break;
       }
-      toast.error(errorMessage)
+      // error toasts already shown above based on errorCode
     } catch (err) {
       toast.error('Registration failed. Please try again.')
     } finally {
@@ -166,7 +167,7 @@ function SigninPage() {
   }
 
   return (
-    <form className={clx('signin-container')}>
+    <form className={clx('signin-container')} onSubmit={handleRegister}>
       <Toaster position="top-right" reverseOrder={false} />
       <img className={clx('logo')} src={logo} alt="Logo" />
       <label className={clx('title')}>SIGN UP</label>
@@ -218,6 +219,7 @@ function SigninPage() {
               type="password"
               onChange={e => {
                 setPassword(e.target.value);
+                try { toast.dismiss(); } catch (err) { /* ignore */ }
               }}
             />
             <FloatingHintTextBox
@@ -227,6 +229,7 @@ function SigninPage() {
               type="password"
               onChange={e => {
                 setConfirm(e.target.value);
+                try { toast.dismiss(); } catch (err) { /* ignore */ }
               }}
             />
             <PasswordReqList password={password} confirm={confirm} onValidityChange={setValidPassword} />
@@ -236,7 +239,7 @@ function SigninPage() {
               <label>Go back to previous step</label>
             </div>
 
-            <button type="button" className={clx('signup-btn')} onClick={handleRegister} disabled={loading}>
+            <button type="submit" className={clx('signup-btn')} disabled={loading}>
               Join the Foxes
             </button>
 

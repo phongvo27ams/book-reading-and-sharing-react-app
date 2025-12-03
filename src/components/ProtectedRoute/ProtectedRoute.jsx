@@ -3,19 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../provider/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
-    const { authenticated, jwt, loading } = useAuth();
+    const { authenticated, jwt, isInitializing } = useAuth();
     const navigate = useNavigate();
     const [hasRedirected, setHasRedirected] = useState(false);
 
     useEffect(() => {
-        if (loading) return;
+        if (isInitializing) return;
         if (!authenticated && !hasRedirected) {
             setHasRedirected(true);
             navigate('/auth/login', { replace: true });
         }
-    }, [authenticated, loading, navigate, hasRedirected]);
+    }, [authenticated, isInitializing, navigate, hasRedirected]);
 
-    if (loading) {
+    if (isInitializing) {
         return (
             <div style={{
                 display: 'flex',
