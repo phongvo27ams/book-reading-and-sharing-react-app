@@ -163,9 +163,29 @@ export default function Comment({ myComment, fname, lname, avatarUrl, rating, up
 
     const formattedDate = (value) => {
         if (!value) return '';
-        const date = new Date(value);
+        let dateObj;
+        if (typeof value === 'number') {
+            // Milliseconds since epoch
+            dateObj = new Date(value);
+        } else if (typeof value === 'string') {
+            // Normalize string timestamps to UTC to avoid timezone shifts in production
+            // Cases:
+            // - ISO with 'Z' or timezone: use as-is
+            // - 'YYYY-MM-DD HH:mm:ss' (no timezone): convert to 'YYYY-MM-DDTHH:mm:ssZ'
+            const hasTZ = /Z|[+-]\d{2}:?\d{2}/.test(value);
+            if (hasTZ) {
+                dateObj = new Date(value);
+            } else {
+                const normalized = value.replace(' ', 'T') + 'Z';
+                dateObj = new Date(normalized);
+            }
+        } else {
+            // Fallback
+            dateObj = new Date(value);
+        }
+
         const now = new Date();
-        const duration = now - date;
+        const duration = now.getTime() - dateObj.getTime();
 
         if (duration < 10000) return 'just now'; // <10s
         if (duration < 60 * 1000) return `${Math.floor(duration/1000)}s ago`; // <1m
